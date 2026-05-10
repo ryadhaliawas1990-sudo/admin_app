@@ -8,7 +8,10 @@ class ReportScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text("التقارير")),
       body: const Center(
-        child: Text("Report Screen جاهز"),
+        child: Text(
+          "واجهة التقارير جاهزة",
+          style: TextStyle(fontSize: 20),
+        ),
       ),
     );
   }

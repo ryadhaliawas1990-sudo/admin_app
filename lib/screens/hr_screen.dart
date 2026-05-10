@@ -8,7 +8,10 @@ class HrScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text("الموارد البشرية")),
       body: const Center(
-        child: Text("HR Screen جاهز"),
+        child: Text(
+          "واجهة الموارد البشرية جاهزة",
+          style: TextStyle(fontSize: 20),
+        ),
       ),
     );
   }

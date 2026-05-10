@@ -16,18 +16,30 @@ class HomeScreen extends StatelessWidget {
         crossAxisCount: 2,
         padding: const EdgeInsets.all(12),
         children: [
-          _card(context, "الموارد البشرية", Icons.people, () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const HrScreen()),
-            );
-          }),
-          _card(context, "التقارير", Icons.assignment, () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ReportScreen()),
-            );
-          }),
+
+          _card(
+            context,
+            "الموارد البشرية",
+            Icons.people,
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HrScreen()),
+              );
+            },
+          ),
+
+          _card(
+            context,
+            "التقارير",
+            Icons.bar_chart,
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ReportScreen()),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -41,7 +53,7 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 40),
+              Icon(icon, size: 50),
               const SizedBox(height: 10),
               Text(title),
             ],
