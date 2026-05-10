@@ -1,0 +1,35 @@
+name: Build Flutter APK
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ جلب الكود
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ إعداد Flutter
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      # 3️⃣ تحميل dependencies
+      - name: Install dependencies
+        run: flutter pub get
+
+      # 4️⃣ بناء APK
+      - name: Build APK (release)
+        run: flutter build apk --release
+
+      # 5️⃣ رفع APK كـ Artifact
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
