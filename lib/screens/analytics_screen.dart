@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 import '../db/db_helper.dart';
 
 class AnalyticsScreen extends StatefulWidget {
@@ -10,78 +9,82 @@ class AnalyticsScreen extends StatefulWidget {
 }
 
 class _AnalyticsScreenState extends State<AnalyticsScreen> {
-  Map<String, int> monthlyData = {};
+  int peopleCount = 0;
+  int reportsCount = 0;
+  int logsCount = 0;
 
   bool loading = true;
 
   @override
   void initState() {
     super.initState();
-    loadAnalytics();
+    loadStats();
   }
 
-  // =========================
-  // 📊 LOAD DATA
-  // =========================
-
-  Future<void> loadAnalytics() async {
-    final db = await DBHelper.database;
-
-    final result = await db.rawQuery('''
-      SELECT month, COUNT(*) as count
-      FROM people
-      GROUP BY month
-      ORDER BY month ASC
-    ''');
-
-    Map<String, int> data = {};
-
-    for (var row in result) {
-      data[row['month'].toString()] = row['count'] as int;
-    }
+  Future<void> loadStats() async {
+    final people = await DBHelper.getPeople();
+    final reports = await DBHelper.getReports();
+    final logs = await DBHelper.getLogs();
 
     setState(() {
-      monthlyData = data;
+      peopleCount = people.length;
+      reportsCount = reports.length;
+      logsCount = logs.length;
       loading = false;
     });
   }
 
-  // =========================
-  // 📊 BUILD CHART
-  // =========================
+  Widget buildBar(String title, int value, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
 
-  List<BarChartGroupData> buildBars() {
-    int index = 0;
+        Text(
+          "$title ($value)",
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
 
-    return monthlyData.entries.map((e) {
-      final value = e.value.toDouble();
+        const SizedBox(height: 6),
 
-      return BarChartGroupData(
-        x: index++,
-        barRods: [
-          BarChartRodData(
-            toY: value,
-            width: 18,
+        Container(
+          height: 20,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade300,
+            borderRadius: BorderRadius.circular(10),
           ),
-        ],
-      );
-    }).toList();
-  }
+          child: FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: value == 0 ? 0.05 : (value / (peopleCount + reportsCount + logsCount + 1)),
+            child: Container(
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ),
 
-  List<String> getLabels() {
-    return monthlyData.keys.toList();
+        const SizedBox(height: 20),
+      ],
+    );
   }
-
-  // =========================
-  // 🧠 UI
-  // =========================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
+
       appBar: AppBar(
-        title: const Text("تحليل البيانات"),
+        title: const Text("التحليلات"),
         centerTitle: true,
+        backgroundColor: Colors.green,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: loadStats,
+          )
+        ],
       ),
 
       body: loading
@@ -89,38 +92,31 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           : Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
 
                   const Text(
-                    "📊 حركة الموظفين حسب الشهر",
+                    "📊 تحليل النظام",
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
 
                   const SizedBox(height: 20),
 
-                  Expanded(
-                    child: BarChart(
-                      BarChartData(
-                        barGroups: buildBars(),
-                        titlesData: FlTitlesData(
-                          bottomTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              getTitlesWidget: (value, meta) {
-                                final labels = getLabels();
+                  buildBar("الموظفين", peopleCount, Colors.blue),
+                  buildBar("التقارير", reportsCount, Colors.red),
+                  buildBar("العمليات", logsCount, Colors.orange),
 
-                                if (value.toInt() < labels.length) {
-                                  return Text(labels[value.toInt()]);
-                                }
+                  const SizedBox(height: 20),
 
-                                return const Text("");
-                              },
-                            ),
-                          ),
-                        ),
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.insights),
+                      title: const Text("ملخص النظام"),
+                      subtitle: Text(
+                        "إجمالي العمليات: ${peopleCount + reportsCount + logsCount}",
                       ),
                     ),
                   ),

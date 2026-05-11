@@ -5,87 +5,33 @@ plugins {
 }
 
 android {
-
     namespace = "com.example.test_app"
-
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
-    // =========================
-    // 🔥 Java / Kotlin
-    // =========================
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
-    }
-
-    // =========================
-    // 📦 التطبيق
-    // =========================
-
     defaultConfig {
-
         applicationId = "com.example.test_app"
 
-        minSdk = flutter.minSdkVersion
+        minSdk = 21
         targetSdk = flutter.targetSdkVersion
 
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        versionCode = 1
+        versionName = "1.0"
 
-        // 🚀 دعم التطبيقات الكبيرة
         multiDexEnabled = true
     }
 
-    // =========================
-    // 🚀 BUILD TYPES
-    // =========================
-
     buildTypes {
-
         release {
-
-            // 🔥 مهم لـ GitHub Actions
+            // 🔥 أهم نقطة: بدون signing خارجي = تجنب الخطأ
             signingConfig = signingConfigs.getByName("debug")
 
-            // ⚡ تحسين الأداء
-            isDebuggable = false
-
-            // 📦 تقليل مشاكل البناء
             isMinifyEnabled = false
             isShrinkResources = false
-        }
-    }
-
-    // =========================
-    // 🔥 Packaging Fixes
-    // =========================
-
-    packaging {
-
-        resources {
-
-            excludes += setOf(
-                "META-INF/DEPENDENCIES",
-                "META-INF/LICENSE",
-                "META-INF/LICENSE.txt",
-                "META-INF/NOTICE",
-                "META-INF/NOTICE.txt",
-                "META-INF/AL2.0",
-                "META-INF/LGPL2.1"
-            )
+            isDebuggable = false
         }
     }
 }
-
-// =========================
-// 🟦 Flutter
-// =========================
 
 flutter {
     source = "../.."

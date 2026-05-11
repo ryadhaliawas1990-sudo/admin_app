@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+
 import '../db/db_helper.dart';
 import '../export/system_full_report.dart';
-import 'package:open_file/open_file.dart';
+
+import 'hr_screen.dart';
+import 'comparison_screen.dart';
+import 'reports_archive_screen.dart';
+import 'analytics_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -11,170 +16,240 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  String? lastActivity;
   int peopleCount = 0;
   int reportsCount = 0;
+  String lastActivity = "لا يوجد نشاط بعد";
 
   @override
   void initState() {
     super.initState();
-    loadStats();
+    loadData();
   }
 
-  // =========================
-  // 📊 LOAD DASHBOARD DATA
-  // =========================
-
-  Future<void> loadStats() async {
-    final db = await DBHelper.database;
-
-    final people = await db.rawQuery('SELECT COUNT(*) as count FROM people');
-    final reports = await db.rawQuery('SELECT COUNT(*) as count FROM reports');
-
-    final activity = await DBHelper.getLastActivity();
+  Future<void> loadData() async {
+    final people = await DBHelper.getPeople();
+    final reports = await DBHelper.getReports();
+    final logs = await DBHelper.getLogs();
 
     setState(() {
-      peopleCount = people.first['count'] as int;
-      reportsCount = reports.first['count'] as int;
-      lastActivity = activity;
+      peopleCount = people.length;
+      reportsCount = reports.length;
+
+      if (logs.isNotEmpty) {
+        lastActivity = logs.first["action"] ?? "لا يوجد نشاط";
+      }
     });
   }
 
-  // =========================
-  // 📊 FULL SYSTEM REPORT
-  // =========================
-
-  Future<void> generateFullReport() async {
+  Future<void> generateSystemReport() async {
     final path = await SystemFullReport.generate();
-
-    await DBHelper.updateLastActivity();
 
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("📊 تم إنشاء التقرير الكامل"),
+      SnackBar(
+        content: Text("تم إنشاء التقرير: $path"),
       ),
     );
-
-    OpenFile.open(path);
-
-    loadStats();
   }
-
-  // =========================
-  // 🧠 UI
-  // =========================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
+
       appBar: AppBar(
         title: const Text("لوحة التحكم"),
         centerTitle: true,
+        backgroundColor: Colors.blue,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: loadData,
+          ),
+        ],
       ),
 
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      body: RefreshIndicator(
+        onRefresh: loadData,
+        child: ListView(
+          padding: const EdgeInsets.all(12),
           children: [
 
             // =========================
-            // 📊 STATS CARDS
+            // 📊 الإحصائيات
             // =========================
-
             Row(
               children: [
 
                 Expanded(
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          const Text("👥 الموظفين"),
-                          Text(
-                            "$peopleCount",
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  child: _statCard(
+                    "الموظفين",
+                    peopleCount.toString(),
+                    Icons.people,
+                    Colors.blue,
                   ),
                 ),
 
                 const SizedBox(width: 10),
 
                 Expanded(
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          const Text("📁 التقارير"),
-                          Text(
-                            "$reportsCount",
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  child: _statCard(
+                    "التقارير",
+                    reportsCount.toString(),
+                    Icons.picture_as_pdf,
+                    Colors.red,
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
 
             // =========================
-            // 🧠 LAST ACTIVITY
+            // 🧠 آخر نشاط
             // =========================
-
             Card(
               child: ListTile(
                 leading: const Icon(Icons.history),
                 title: const Text("آخر نشاط"),
-                subtitle: Text(
-                  lastActivity ?? "لا يوجد نشاط بعد",
+                subtitle: Text(lastActivity),
+                trailing: IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: loadData,
                 ),
               ),
             ),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 20),
 
             // =========================
-            // 🚀 ACTION BUTTON
+            // 🧭 القائمة
             // =========================
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              children: [
 
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: generateFullReport,
-                icon: const Icon(Icons.picture_as_pdf),
-                label: const Text("📊 إنشاء تقرير النظام الكامل"),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.all(16),
+                _menuCard(
+                  "الموظفين",
+                  Icons.people,
+                  Colors.blue,
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const HrScreen(),
+                      ),
+                    );
+                  },
                 ),
-              ),
-            ),
 
+                _menuCard(
+                  "التقارير",
+                  Icons.picture_as_pdf,
+                  Colors.red,
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ComparisonScreen(),
+                      ),
+                    );
+                  },
+                ),
+
+                _menuCard(
+                  "الأرشيف",
+                  Icons.folder,
+                  Colors.orange,
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ReportsArchiveScreen(),
+                      ),
+                    );
+                  },
+                ),
+
+                _menuCard(
+                  "التحليلات",
+                  Icons.bar_chart,
+                  Colors.green,
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AnalyticsScreen(),
+                      ),
+                    );
+                  },
+                ),
+
+                // =========================
+                // 📄 تقرير النظام الكامل
+                // =========================
+                _menuCard(
+                  "تقرير النظام PDF",
+                  Icons.assessment,
+                  Colors.purple,
+                  () async {
+                    await generateSystemReport();
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // =========================
+  // 📊 Stat Card
+  // =========================
+  Widget _statCard(String title, String value, IconData icon, Color color) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 30),
+            const SizedBox(height: 5),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            Text(title),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // =========================
+  // 📦 Menu Card
+  // =========================
+  Widget _menuCard(
+    String title,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      child: Card(
+        elevation: 3,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 40, color: color),
             const SizedBox(height: 10),
-
-            // =========================
-            // 🔄 REFRESH
-            // =========================
-
-            TextButton.icon(
-              onPressed: loadStats,
-              icon: const Icon(Icons.refresh),
-              label: const Text("تحديث البيانات"),
-            ),
+            Text(title),
           ],
         ),
       ),

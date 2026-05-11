@@ -1,13 +1,11 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
-import '../core/app_refresher.dart';
-
 class DBHelper {
   static Database? _db;
 
   // =========================
-  // 📌 DATABASE INIT
+  // 📌 INIT DATABASE
   // =========================
 
   static Future<Database> get database async {
@@ -23,112 +21,65 @@ class DBHelper {
       path,
       version: 4,
 
-      // 🟢 إنشاء أول مرة
       onCreate: (db, version) async {
-        await _createTables(db);
-      },
 
-      // 🟡 ترقيات
-      onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 2) {
-          await db.execute(
-            "ALTER TABLE people ADD COLUMN month TEXT",
-          );
-        }
+        // 👥 PEOPLE
+        await db.execute('''
+          CREATE TABLE people(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            number TEXT,
+            rank TEXT,
+            unit TEXT,
+            status TEXT,
+            month TEXT
+          )
+        ''');
 
-        if (oldVersion < 3) {
-          await db.execute('''
-            CREATE TABLE IF NOT EXISTS reports(
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              title TEXT,
-              monthA TEXT,
-              monthB TEXT,
-              filePath TEXT,
-              createdAt TEXT
-            )
-          ''');
-        }
+        // 📁 REPORTS
+        await db.execute('''
+          CREATE TABLE reports(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
+            monthA TEXT,
+            monthB TEXT,
+            filePath TEXT,
+            createdAt TEXT
+          )
+        ''');
 
-        if (oldVersion < 4) {
-          await db.execute('''
-            CREATE TABLE IF NOT EXISTS system_meta(
-              id INTEGER PRIMARY KEY,
-              lastActivity TEXT
-            )
-          ''');
-        }
+        // 🧠 LOGS (سجل النشاط)
+        await db.execute('''
+          CREATE TABLE logs(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            action TEXT,
+            createdAt TEXT
+          )
+        ''');
       },
     );
   }
 
   // =========================
-  // 🏗️ CREATE TABLES (CLEAN)
+  // 🧠 LOG SYSTEM
   // =========================
 
-  static Future<void> _createTables(Database db) async {
-    await db.execute('''
-      CREATE TABLE people(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        number TEXT,
-        rank TEXT,
-        unit TEXT,
-        status TEXT,
-        month TEXT
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE reports(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT,
-        monthA TEXT,
-        monthB TEXT,
-        filePath TEXT,
-        createdAt TEXT
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE system_meta(
-        id INTEGER PRIMARY KEY,
-        lastActivity TEXT
-      )
-    ''');
-  }
-
-  // =========================
-  // 🧠 SYSTEM ACTIVITY
-  // =========================
-
-  static Future<void> updateLastActivity() async {
+  static Future<void> addLog(String action) async {
     final db = await database;
 
-    await db.insert(
-      'system_meta',
-      {
-        'id': 1,
-        'lastActivity': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('logs', {
+      'action': action,
+      'createdAt': DateTime.now().toIso8601String(),
+    });
   }
 
-  static Future<String?> getLastActivity() async {
+  static Future<List<Map<String, dynamic>>> getLogs() async {
     final db = await database;
 
-    final res = await db.query(
-      'system_meta',
-      where: 'id = ?',
-      whereArgs: [1],
-      limit: 1,
+    return await db.query(
+      'logs',
+      orderBy: 'id DESC',
     );
-
-    if (res.isNotEmpty) {
-      return res.first['lastActivity'] as String;
-    }
-
-    return null;
   }
 
   // =========================
@@ -137,22 +88,16 @@ class DBHelper {
 
   static Future<int> insertPerson(Map<String, dynamic> data) async {
     final db = await database;
-
     final res = await db.insert('people', data);
 
-    await updateLastActivity();
-    AppRefresher.refresh();
+    await addLog("تم إضافة موظف");
 
     return res;
   }
 
   static Future<List<Map<String, dynamic>>> getPeople() async {
     final db = await database;
-
-    return await db.query(
-      'people',
-      orderBy: 'id DESC',
-    );
+    return await db.query('people', orderBy: 'id DESC');
   }
 
   static Future<List<Map<String, dynamic>>> getByMonth(String month) async {
@@ -162,7 +107,6 @@ class DBHelper {
       'people',
       where: 'month = ?',
       whereArgs: [month],
-      orderBy: 'id DESC',
     );
   }
 
@@ -186,8 +130,7 @@ class DBHelper {
       whereArgs: [id],
     );
 
-    await updateLastActivity();
-    AppRefresher.refresh();
+    await addLog("تم تعديل موظف");
 
     return res;
   }
@@ -201,8 +144,15 @@ class DBHelper {
       whereArgs: [id],
     );
 
-    await updateLastActivity();
-    AppRefresher.refresh();
+    await addLog("تم حذف موظف");
+  }
+
+  static Future<List<Map<String, dynamic>>> getMonths() async {
+    final db = await database;
+
+    return await db.rawQuery(
+      'SELECT DISTINCT month FROM people ORDER BY month DESC',
+    );
   }
 
   // =========================
@@ -211,17 +161,9 @@ class DBHelper {
 
   static Future<int> insertReport(Map<String, dynamic> data) async {
     final db = await database;
+    final res = await db.insert('reports', data);
 
-    final res = await db.insert('reports', {
-      "title": data["title"],
-      "monthA": data["monthA"],
-      "monthB": data["monthB"],
-      "filePath": data["filePath"],
-      "createdAt": DateTime.now().toIso8601String(),
-    });
-
-    await updateLastActivity();
-    AppRefresher.refresh();
+    await addLog("تم إنشاء تقرير");
 
     return res;
   }
@@ -229,10 +171,7 @@ class DBHelper {
   static Future<List<Map<String, dynamic>>> getReports() async {
     final db = await database;
 
-    return await db.query(
-      'reports',
-      orderBy: 'id DESC',
-    );
+    return await db.query('reports', orderBy: 'id DESC');
   }
 
   static Future<void> deleteReport(int id) async {
@@ -244,19 +183,6 @@ class DBHelper {
       whereArgs: [id],
     );
 
-    await updateLastActivity();
-    AppRefresher.refresh();
-  }
-
-  // =========================
-  // 📊 MONTHS
-  // =========================
-
-  static Future<List<Map<String, dynamic>>> getMonths() async {
-    final db = await database;
-
-    return await db.rawQuery(
-      'SELECT DISTINCT month FROM people ORDER BY month DESC',
-    );
+    await addLog("تم حذف تقرير");
   }
 }
