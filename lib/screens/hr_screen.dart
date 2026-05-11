@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../db/db_helper.dart';
 import '../export/excel_export.dart';
 import '../data/excel_import.dart';
-import '../export/monthly_comparison_pdf.dart'; // 🔥 إضافة المباينة
+import '../export/monthly_comparison_pdf.dart';
+import '../core/app_refresher.dart';
 
 class HrScreen extends StatefulWidget {
   const HrScreen({super.key});
@@ -20,14 +21,22 @@ class _HrScreenState extends State<HrScreen> {
 
   List<Map<String, dynamic>> people = [];
   String searchQuery = "";
-
   String selectedMonth = "2026-01";
 
   @override
   void initState() {
     super.initState();
     loadData();
+
+    // 🔄 تحديث تلقائي عند أي تغيير في النظام
+    AppRefresher.refreshNotifier.addListener(() {
+      loadData();
+    });
   }
+
+  // =====================================================
+  // 📊 LOAD DATA
+  // =====================================================
 
   Future<void> loadData() async {
     List<Map<String, dynamic>> data;
@@ -43,6 +52,10 @@ class _HrScreenState extends State<HrScreen> {
     });
   }
 
+  // =====================================================
+  // ➕ ADD PERSON
+  // =====================================================
+
   Future<void> addPerson() async {
     await DBHelper.insertPerson({
       "name": nameController.text,
@@ -53,19 +66,37 @@ class _HrScreenState extends State<HrScreen> {
       "month": selectedMonth,
     });
 
-    nameController.clear();
-    numberController.clear();
-    rankController.clear();
-    unitController.clear();
-    statusController.clear();
-
-    loadData();
+    _clearInputs();
   }
+
+  // =====================================================
+  // ✏️ UPDATE
+  // =====================================================
+
+  Future<void> updatePerson(int id) async {
+    await DBHelper.updatePerson(id, {
+      "name": nameController.text,
+      "number": numberController.text,
+      "rank": rankController.text,
+      "unit": unitController.text,
+      "status": statusController.text,
+      "month": selectedMonth,
+    });
+
+    Navigator.pop(context);
+  }
+
+  // =====================================================
+  // ❌ DELETE
+  // =====================================================
 
   Future<void> deletePerson(int id) async {
     await DBHelper.deletePerson(id);
-    loadData();
   }
+
+  // =====================================================
+  // 📁 EXPORT EXCEL
+  // =====================================================
 
   Future<void> exportExcel() async {
     final path = await ExcelExport.exportToExcel(people);
@@ -75,19 +106,69 @@ class _HrScreenState extends State<HrScreen> {
     );
   }
 
+  // =====================================================
+  // 📥 IMPORT
+  // =====================================================
+
   Future<void> importExcel() async {
     await ExcelImport.pickAndImport(selectedMonth);
-    loadData();
   }
 
-  // 🔥 زر المباينة PDF
+  // =====================================================
+  // 📊 PDF REPORT
+  // =====================================================
+
   Future<void> exportComparisonPdf() async {
-    await MonthlyComparisonPdf.export([
-      "2026-01",
-      "2026-02",
-      "2026-03",
-    ]);
+    final controller = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("اسم التقرير"),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: "اكتب اسم التقرير",
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("إلغاء"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = controller.text.trim();
+              Navigator.pop(context);
+
+              await MonthlyComparisonPdf.export(
+                ["2026-01", "2026-02", "2026-03"],
+                customTitle:
+                    name.isEmpty ? "تقرير مباينة" : name,
+              );
+            },
+            child: const Text("إنشاء"),
+          ),
+        ],
+      ),
+    );
   }
+
+  // =====================================================
+  // 🧹 CLEAR INPUTS
+  // =====================================================
+
+  void _clearInputs() {
+    nameController.clear();
+    numberController.clear();
+    rankController.clear();
+    unitController.clear();
+    statusController.clear();
+  }
+
+  // =====================================================
+  // ✏️ EDIT DIALOG
+  // =====================================================
 
   void openEditDialog(Map<String, dynamic> p) {
     nameController.text = p["name"] ?? "";
@@ -118,16 +199,7 @@ class _HrScreenState extends State<HrScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              await DBHelper.updatePerson(p["id"], {
-                "name": nameController.text,
-                "number": numberController.text,
-                "rank": rankController.text,
-                "unit": unitController.text,
-                "status": statusController.text,
-                "month": selectedMonth,
-              });
-
-              Navigator.pop(context);
+              await updatePerson(p["id"]);
               loadData();
             },
             child: const Text("حفظ"),
@@ -137,13 +209,17 @@ class _HrScreenState extends State<HrScreen> {
     );
   }
 
+  // =====================================================
+  // 🧠 UI
+  // =====================================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
 
       appBar: AppBar(
-        title: const Text("نظام الموارد البشرية"),
+        title: const Text("HR System (Live)"),
         centerTitle: true,
         backgroundColor: Colors.blue,
       ),
@@ -151,12 +227,12 @@ class _HrScreenState extends State<HrScreen> {
       body: Column(
         children: [
 
-          // 🔍 Search
+          // 🔍 SEARCH
           Padding(
             padding: const EdgeInsets.all(10),
             child: TextField(
               decoration: const InputDecoration(
-                labelText: "بحث بالاسم أو الرقم",
+                labelText: "بحث",
                 prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(),
               ),
@@ -167,15 +243,11 @@ class _HrScreenState extends State<HrScreen> {
             ),
           ),
 
-          // 📅 الشهر + الأزرار
+          // 📅 MONTH + ACTIONS
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Row(
               children: [
-
-                const Text("الشهر: "),
-                const SizedBox(width: 10),
-
                 DropdownButton<String>(
                   value: selectedMonth,
                   items: const [
@@ -200,7 +272,7 @@ class _HrScreenState extends State<HrScreen> {
 
                 ElevatedButton(
                   onPressed: exportComparisonPdf,
-                  child: const Text("📊 مباينة PDF"),
+                  child: const Text("PDF"),
                 ),
               ],
             ),
@@ -208,9 +280,9 @@ class _HrScreenState extends State<HrScreen> {
 
           const SizedBox(height: 10),
 
-          // 🟢 الإدخال
+          // ➕ INPUT
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            padding: const EdgeInsets.all(10),
             child: Card(
               child: Padding(
                 padding: const EdgeInsets.all(10),
@@ -228,12 +300,10 @@ class _HrScreenState extends State<HrScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-
                         ElevatedButton(
                           onPressed: addPerson,
                           child: const Text("إضافة"),
                         ),
-
                         ElevatedButton(
                           onPressed: exportExcel,
                           child: const Text("Excel"),
@@ -248,7 +318,7 @@ class _HrScreenState extends State<HrScreen> {
 
           const SizedBox(height: 10),
 
-          // 📋 القائمة
+          // 📋 LIST
           Expanded(
             child: ListView.builder(
               itemCount: people.length,
@@ -260,9 +330,8 @@ class _HrScreenState extends State<HrScreen> {
                     leading: const Icon(Icons.person),
                     title: Text(p["name"] ?? ""),
                     subtitle: Text(
-                      "رقم: ${p["number"]} | رتبة: ${p["rank"]} | شهر: ${p["month"] ?? ""}",
+                      "رقم: ${p["number"]} | رتبة: ${p["rank"]}",
                     ),
-
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [

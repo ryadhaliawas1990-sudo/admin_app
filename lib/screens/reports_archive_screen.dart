@@ -1,88 +1,91 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:open_file/open_file.dart';
-import 'package:share_plus/share_plus.dart';
+import '../db/db_helper.dart';
+import 'hr_screen.dart';
+import 'reports_archive_screen.dart';
+import '../export/monthly_comparison_pdf.dart';
 
-class ReportsArchiveScreen extends StatefulWidget {
-  const ReportsArchiveScreen({super.key});
+class DashboardScreen extends StatefulWidget {
+  const DashboardScreen({super.key});
 
   @override
-  State<ReportsArchiveScreen> createState() => _ReportsArchiveScreenState();
+  State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _ReportsArchiveScreenState extends State<ReportsArchiveScreen> {
-  List<File> allFiles = [];
-  List<File> filteredFiles = [];
+class _DashboardScreenState extends State<DashboardScreen> {
+  int totalPeople = 0;
+  int totalReports = 0;
 
-  String searchQuery = "";
-  String selectedMonth = "الكل";
+  int active = 0;
+  int inactive = 0;
+  int unknown = 0;
 
-  List<String> months = ["الكل"];
+  bool loading = true;
+
+  String alertMessage = "";
 
   @override
   void initState() {
     super.initState();
-    loadFiles();
+    loadAnalytics();
   }
 
-  Future<void> loadFiles() async {
-    final dir = await getApplicationDocumentsDirectory();
-    final files = dir
-        .listSync()
-        .where((f) => f.path.endsWith(".pdf"))
-        .map((f) => File(f.path))
-        .toList();
+  Future<void> loadAnalytics() async {
+    setState(() => loading = true);
 
-    // استخراج الشهور من أسماء الملفات
-    Set<String> extractedMonths = {"الكل"};
+    final people = await DBHelper.getPeople();
+    final reports = await DBHelper.getReports();
 
-    for (var f in files) {
-      final name = f.path.split("/").last;
+    int a = 0;
+    int i = 0;
+    int u = 0;
 
-      // نحاول استخراج الشهر من الاسم
-      final parts = name.split("_");
-      for (var p in parts) {
-        if (p.contains("2026") || p.contains("2025")) {
-          extractedMonths.add(p);
-        }
+    for (var p in people) {
+      final status = (p["status"] ?? "").toString().toLowerCase();
+
+      if (status.contains("نشط") || status.contains("active")) {
+        a++;
+      } else if (status.contains("غير") ||
+          status.contains("inactive")) {
+        i++;
+      } else {
+        u++;
       }
     }
 
+    // 🧠 تحليل ذكي بسيط
+    String alert = "";
+    if (a < i) {
+      alert = "⚠️ عدد غير النشطين أعلى من النشطين";
+    } else if (reports.isEmpty) {
+      alert = "📁 لا توجد تقارير محفوظة بعد";
+    } else {
+      alert = "✅ النظام يعمل بشكل طبيعي";
+    }
+
     setState(() {
-      allFiles = files.reversed.toList();
-      filteredFiles = allFiles;
-      months = extractedMonths.toList();
+      totalPeople = people.length;
+      totalReports = reports.length;
+
+      active = a;
+      inactive = i;
+      unknown = u;
+
+      alertMessage = alert;
+      loading = false;
     });
   }
 
-  void filterFiles() {
-    setState(() {
-      filteredFiles = allFiles.where((file) {
-        final name = file.path.toLowerCase();
-
-        final matchSearch = name.contains(searchQuery.toLowerCase());
-
-        final matchMonth = selectedMonth == "الكل"
-            ? true
-            : name.contains(selectedMonth);
-
-        return matchSearch && matchMonth;
-      }).toList();
-    });
+  void openComparison() {
+    MonthlyComparisonPdf.export([
+      "2026-01",
+      "2026-02",
+      "2026-03",
+    ]);
   }
 
-  void openFile(File file) {
-    OpenFile.open(file.path);
-  }
-
-  void shareFile(File file) {
-    Share.shareXFiles([XFile(file.path)], text: "تقرير مباينة");
-  }
-
-  Future<void> deleteFile(File file) async {
-    await file.delete();
-    loadFiles();
+  double percent(int value) {
+    if (totalPeople == 0) return 0;
+    return value / totalPeople;
   }
 
   @override
@@ -91,118 +94,142 @@ class _ReportsArchiveScreenState extends State<ReportsArchiveScreen> {
       backgroundColor: Colors.grey.shade100,
 
       appBar: AppBar(
-        title: const Text("📁 الأرشيف الذكي"),
+        title: const Text("Smart ERP Dashboard"),
         centerTitle: true,
-        backgroundColor: Colors.blue,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: loadFiles,
-          ),
+            onPressed: loadAnalytics,
+          )
         ],
       ),
 
-      body: Column(
-        children: [
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
 
-          // 🔍 البحث
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: TextField(
-              decoration: const InputDecoration(
-                labelText: "بحث عن تقرير",
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                searchQuery = value;
-                filterFiles();
-              },
-            ),
-          ),
-
-          // 📅 الفلترة بالشهر
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: DropdownButton<String>(
-              value: selectedMonth,
-              isExpanded: true,
-              items: months
-                  .map(
-                    (m) => DropdownMenuItem(
-                      value: m,
-                      child: Text(m),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedMonth = value!;
-                  filterFiles();
-                });
-              },
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          // 📁 القائمة
-          Expanded(
-            child: filteredFiles.isEmpty
-                ? const Center(
-                    child: Text("لا توجد تقارير"),
-                  )
-                : ListView.builder(
-                    itemCount: filteredFiles.length,
-                    itemBuilder: (context, index) {
-                      final file = filteredFiles[index];
-                      final name = file.path.split("/").last;
-
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        child: ListTile(
-                          leading: const Icon(
-                            Icons.picture_as_pdf,
-                            color: Colors.red,
-                          ),
-                          title: Text(name),
-
-                          subtitle: Text(
-                            "📅 تقرير محفوظ",
-                            style: TextStyle(color: Colors.grey.shade600),
-                          ),
-
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-
-                              IconButton(
-                                icon: const Icon(Icons.open_in_new,
-                                    color: Colors.blue),
-                                onPressed: () => openFile(file),
-                              ),
-
-                              IconButton(
-                                icon: const Icon(Icons.share,
-                                    color: Colors.green),
-                                onPressed: () => shareFile(file),
-                              ),
-
-                              IconButton(
-                                icon: const Icon(Icons.delete,
-                                    color: Colors.red),
-                                onPressed: () => deleteFile(file),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
+                  // 📊 KPIs
+                  Row(
+                    children: [
+                      _card("الأفراد", totalPeople, Colors.blue),
+                      _card("التقارير", totalReports, Colors.orange),
+                    ],
                   ),
+
+                  const SizedBox(height: 10),
+
+                  // 📊 نسب
+                  _bar("نشط", percent(active), Colors.green),
+                  _bar("غير نشط", percent(inactive), Colors.red),
+                  _bar("غير معروف", percent(unknown), Colors.grey),
+
+                  const SizedBox(height: 15),
+
+                  // 🧠 تنبيه ذكي
+                  Card(
+                    color: Colors.black87,
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.notifications,
+                        color: Colors.white,
+                      ),
+                      title: Text(
+                        alertMessage,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // 🚀 الأزرار
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const HrScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text("HR"),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const ReportsArchiveScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text("الأرشيف"),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: openComparison,
+                      child: const Text("إنشاء تقرير مباينة"),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+
+  Widget _card(String title, int value, Color color) {
+    return Expanded(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Text(
+                "$value",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              Text(title),
+            ],
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _bar(String title, double value, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("$title ${(value * 100).toStringAsFixed(1)}%"),
+        const SizedBox(height: 5),
+        LinearProgressIndicator(
+          value: value,
+          color: color,
+          backgroundColor: Colors.grey.shade300,
+        ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 }
