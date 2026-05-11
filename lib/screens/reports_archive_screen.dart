@@ -169,7 +169,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (_) =>
-                                    const ReportsArchiveScreen(),
+                                    ReportsArchiveScreen(),,
                               ),
                             );
                           },
