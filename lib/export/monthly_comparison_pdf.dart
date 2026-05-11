@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
+
 import '../db/db_helper.dart';
 
 class MonthlyComparisonPdf {
@@ -23,9 +24,12 @@ class MonthlyComparisonPdf {
     Map<String, Map<String, dynamic>> peopleMap = {};
 
     for (var month in months) {
-      for (var p in dataByMonth[month]!) {
-        final num = p['number'];
+      final list = dataByMonth[month] ?? [];
 
+      for (var p in list) {
+        final num = p['number']?.toString();
+
+        if (num == null) continue;
         if (numbers != null && !numbers.contains(num)) continue;
 
         peopleMap[num] = p;
@@ -56,9 +60,9 @@ class MonthlyComparisonPdf {
 
                 children: [
 
-                  // Header
+                  // HEADER
                   pw.TableRow(
-                    decoration: const pw.BoxDecoration(
+                    decoration: pw.BoxDecoration(
                       color: PdfColors.grey300,
                     ),
                     children: [
@@ -71,34 +75,43 @@ class MonthlyComparisonPdf {
                     ],
                   ),
 
-                  // Rows
+                  // ROWS
                   ...peopleMap.values.map((p) {
 
                     int present = 0;
 
                     final row = <pw.Widget>[
-                      pw.Text(p['number'] ?? ''),
+                      pw.Text(p['number']?.toString() ?? ''),
                       pw.Text(p['rank'] ?? ''),
                       pw.Text(p['name'] ?? ''),
                       pw.Text(p['unit'] ?? ''),
                     ];
 
                     for (var month in months) {
-                      final exists = dataByMonth[month]!
-                          .any((e) => e['number'] == p['number']);
+
+                      final list = dataByMonth[month] ?? [];
+
+                      final exists = list.any(
+                        (e) => e['number']?.toString() ==
+                            p['number']?.toString(),
+                      );
 
                       if (exists) present++;
 
                       row.add(
                         pw.Container(
                           padding: const pw.EdgeInsets.all(4),
-                          color: exists ? PdfColors.green100 : PdfColors.red100,
+                          color: exists
+                              ? PdfColors.green100
+                              : PdfColors.red100,
                           child: pw.Text(exists ? "✔" : "✖"),
                         ),
                       );
                     }
 
-                    final percent = (present / months.length * 100).toInt();
+                    final percent = months.isEmpty
+                        ? 0
+                        : ((present / months.length) * 100).toInt();
 
                     row.add(pw.Text("$percent%"));
 
@@ -112,7 +125,7 @@ class MonthlyComparisonPdf {
       ),
     );
 
-    // 📁 حفظ تلقائي داخل الجهاز
+    // SAVE FILE
     final dir = await getApplicationDocumentsDirectory();
 
     final fileName =

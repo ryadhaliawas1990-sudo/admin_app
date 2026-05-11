@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../db/db_helper.dart';
 import '../export/excel_export.dart';
 import '../data/excel_import.dart';
@@ -28,33 +29,28 @@ class _HrScreenState extends State<HrScreen> {
     super.initState();
     loadData();
 
-    // 🔄 تحديث تلقائي عند أي تغيير في النظام
     AppRefresher.refreshNotifier.addListener(() {
       loadData();
     });
   }
 
-  // =====================================================
-  // 📊 LOAD DATA
-  // =====================================================
+  // =========================
+  // LOAD DATA
+  // =========================
 
   Future<void> loadData() async {
-    List<Map<String, dynamic>> data;
-
-    if (searchQuery.isEmpty) {
-      data = await DBHelper.getPeople();
-    } else {
-      data = await DBHelper.searchPeople(searchQuery);
-    }
+    final data = searchQuery.isEmpty
+        ? await DBHelper.getPeople()
+        : await DBHelper.searchPeople(searchQuery);
 
     setState(() {
       people = data;
     });
   }
 
-  // =====================================================
-  // ➕ ADD PERSON
-  // =====================================================
+  // =========================
+  // ADD
+  // =========================
 
   Future<void> addPerson() async {
     await DBHelper.insertPerson({
@@ -67,11 +63,12 @@ class _HrScreenState extends State<HrScreen> {
     });
 
     _clearInputs();
+    loadData();
   }
 
-  // =====================================================
-  // ✏️ UPDATE
-  // =====================================================
+  // =========================
+  // UPDATE
+  // =========================
 
   Future<void> updatePerson(int id) async {
     await DBHelper.updatePerson(id, {
@@ -84,19 +81,21 @@ class _HrScreenState extends State<HrScreen> {
     });
 
     Navigator.pop(context);
+    loadData();
   }
 
-  // =====================================================
-  // ❌ DELETE
-  // =====================================================
+  // =========================
+  // DELETE
+  // =========================
 
   Future<void> deletePerson(int id) async {
     await DBHelper.deletePerson(id);
+    loadData();
   }
 
-  // =====================================================
-  // 📁 EXPORT EXCEL
-  // =====================================================
+  // =========================
+  // EXCEL
+  // =========================
 
   Future<void> exportExcel() async {
     final path = await ExcelExport.exportToExcel(people);
@@ -106,57 +105,24 @@ class _HrScreenState extends State<HrScreen> {
     );
   }
 
-  // =====================================================
-  // 📥 IMPORT
-  // =====================================================
-
   Future<void> importExcel() async {
     await ExcelImport.pickAndImport(selectedMonth);
+    loadData();
   }
 
-  // =====================================================
-  // 📊 PDF REPORT
-  // =====================================================
+  // =========================
+  // PDF (FIXED)
+  // =========================
 
   Future<void> exportComparisonPdf() async {
-    final controller = TextEditingController();
-
-    await showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("اسم التقرير"),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: "اكتب اسم التقرير",
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("إلغاء"),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final name = controller.text.trim();
-              Navigator.pop(context);
-
-              await MonthlyComparisonPdf.export(
-                ["2026-01", "2026-02", "2026-03"],
-                customTitle:
-                    name.isEmpty ? "تقرير مباينة" : name,
-              );
-            },
-            child: const Text("إنشاء"),
-          ),
-        ],
-      ),
+    await MonthlyComparisonPdf.export(
+      ["2026-01", "2026-02", "2026-03"],
     );
   }
 
-  // =====================================================
-  // 🧹 CLEAR INPUTS
-  // =====================================================
+  // =========================
+  // CLEAR
+  // =========================
 
   void _clearInputs() {
     nameController.clear();
@@ -166,9 +132,9 @@ class _HrScreenState extends State<HrScreen> {
     statusController.clear();
   }
 
-  // =====================================================
-  // ✏️ EDIT DIALOG
-  // =====================================================
+  // =========================
+  // EDIT
+  // =========================
 
   void openEditDialog(Map<String, dynamic> p) {
     nameController.text = p["name"] ?? "";
@@ -200,7 +166,6 @@ class _HrScreenState extends State<HrScreen> {
           ElevatedButton(
             onPressed: () async {
               await updatePerson(p["id"]);
-              loadData();
             },
             child: const Text("حفظ"),
           ),
@@ -209,9 +174,9 @@ class _HrScreenState extends State<HrScreen> {
     );
   }
 
-  // =====================================================
-  // 🧠 UI
-  // =====================================================
+  // =========================
+  // UI
+  // =========================
 
   @override
   Widget build(BuildContext context) {
@@ -219,7 +184,7 @@ class _HrScreenState extends State<HrScreen> {
       backgroundColor: Colors.grey.shade100,
 
       appBar: AppBar(
-        title: const Text("HR System (Live)"),
+        title: const Text("HR System"),
         centerTitle: true,
         backgroundColor: Colors.blue,
       ),
@@ -227,7 +192,7 @@ class _HrScreenState extends State<HrScreen> {
       body: Column(
         children: [
 
-          // 🔍 SEARCH
+          // SEARCH
           Padding(
             padding: const EdgeInsets.all(10),
             child: TextField(
@@ -243,11 +208,12 @@ class _HrScreenState extends State<HrScreen> {
             ),
           ),
 
-          // 📅 MONTH + ACTIONS
+          // MONTH + ACTIONS
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Row(
               children: [
+
                 DropdownButton<String>(
                   value: selectedMonth,
                   items: const [
@@ -280,7 +246,7 @@ class _HrScreenState extends State<HrScreen> {
 
           const SizedBox(height: 10),
 
-          // ➕ INPUT
+          // INPUT
           Padding(
             padding: const EdgeInsets.all(10),
             child: Card(
@@ -289,21 +255,23 @@ class _HrScreenState extends State<HrScreen> {
                 child: Column(
                   children: [
 
-                    TextField(controller: nameController, decoration: const InputDecoration(labelText: "الاسم")),
-                    TextField(controller: numberController, decoration: const InputDecoration(labelText: "الرقم")),
-                    TextField(controller: rankController, decoration: const InputDecoration(labelText: "الرتبة")),
-                    TextField(controller: unitController, decoration: const InputDecoration(labelText: "الوحدة")),
-                    TextField(controller: statusController, decoration: const InputDecoration(labelText: "الحالة")),
+                    TextField(controller: nameController),
+                    TextField(controller: numberController),
+                    TextField(controller: rankController),
+                    TextField(controller: unitController),
+                    TextField(controller: statusController),
 
                     const SizedBox(height: 10),
 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
+
                         ElevatedButton(
                           onPressed: addPerson,
                           child: const Text("إضافة"),
                         ),
+
                         ElevatedButton(
                           onPressed: exportExcel,
                           child: const Text("Excel"),
@@ -318,7 +286,7 @@ class _HrScreenState extends State<HrScreen> {
 
           const SizedBox(height: 10),
 
-          // 📋 LIST
+          // LIST
           Expanded(
             child: ListView.builder(
               itemCount: people.length,

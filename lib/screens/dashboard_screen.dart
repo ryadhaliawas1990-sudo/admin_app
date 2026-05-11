@@ -47,9 +47,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("تم إنشاء التقرير: $path"),
-      ),
+      SnackBar(content: Text("تم إنشاء التقرير: $path")),
     );
   }
 
@@ -76,12 +74,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           padding: const EdgeInsets.all(12),
           children: [
 
-            // =========================
-            // 📊 الإحصائيات
-            // =========================
             Row(
               children: [
-
                 Expanded(
                   child: _statCard(
                     "الموظفين",
@@ -90,9 +84,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Colors.blue,
                   ),
                 ),
-
                 const SizedBox(width: 10),
-
                 Expanded(
                   child: _statCard(
                     "التقارير",
@@ -106,9 +98,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             const SizedBox(height: 10),
 
-            // =========================
-            // 🧠 آخر نشاط
-            // =========================
             Card(
               child: ListTile(
                 leading: const Icon(Icons.history),
@@ -123,9 +112,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             const SizedBox(height: 20),
 
-            // =========================
-            // 🧭 القائمة
-            // =========================
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -142,7 +128,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const HrScreen(),
+                        builder: (_) => HrScreen(),
                       ),
                     );
                   },
@@ -156,7 +142,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const ComparisonScreen(),
+                        builder: (_) => ComparisonScreen(),
                       ),
                     );
                   },
@@ -170,7 +156,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const ReportsArchiveScreen(),
+                        builder: (_) => ReportsArchiveScreen(),
                       ),
                     );
                   },
@@ -184,15 +170,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const AnalyticsScreen(),
+                        builder: (_) => AnalyticsScreen(),
                       ),
                     );
                   },
                 ),
 
-                // =========================
-                // 📄 تقرير النظام الكامل
-                // =========================
                 _menuCard(
                   "تقرير النظام PDF",
                   Icons.assessment,
@@ -209,9 +192,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // =========================
-  // 📊 Stat Card
-  // =========================
   Widget _statCard(String title, String value, IconData icon, Color color) {
     return Card(
       child: Padding(
@@ -222,7 +202,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 5),
             Text(
               value,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             Text(title),
           ],
@@ -231,9 +214,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // =========================
-  // 📦 Menu Card
-  // =========================
   Widget _menuCard(
     String title,
     IconData icon,
