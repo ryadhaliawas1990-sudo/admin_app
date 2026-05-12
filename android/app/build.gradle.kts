@@ -5,15 +5,19 @@ plugins {
 }
 
 android {
+
     namespace = "com.example.test_app"
-    compileSdk = flutter.compileSdkVersion
+
+    compileSdk = 34
+
     ndkVersion = flutter.ndkVersion
 
     defaultConfig {
+
         applicationId = "com.example.test_app"
 
         minSdk = 21
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 34
 
         versionCode = 1
         versionName = "1.0"
@@ -21,14 +25,41 @@ android {
         multiDexEnabled = true
     }
 
+    // ✅ توحيد Java و Kotlin على 17
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
     buildTypes {
+
         release {
-            // 🔥 أهم نقطة: بدون signing خارجي = تجنب الخطأ
+
             signingConfig = signingConfigs.getByName("debug")
 
             isMinifyEnabled = false
             isShrinkResources = false
             isDebuggable = false
+        }
+    }
+
+    packaging {
+
+        resources {
+
+            excludes += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/AL2.0",
+                "META-INF/LGPL2.1"
+            )
         }
     }
 }
