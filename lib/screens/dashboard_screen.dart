@@ -74,6 +74,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           padding: const EdgeInsets.all(12),
           children: [
 
+            // =======================
+            // 📊 الإحصائيات
+            // =======================
             Row(
               children: [
                 Expanded(
@@ -98,6 +101,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             const SizedBox(height: 10),
 
+            // =======================
+            // 🧠 آخر نشاط
+            // =======================
             Card(
               child: ListTile(
                 leading: const Icon(Icons.history),
@@ -112,6 +118,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             const SizedBox(height: 20),
 
+            // =======================
+            // 📦 القائمة
+            // =======================
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -128,7 +137,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => HrScreen(),
+                        builder: (context) => const HrScreen(),
                       ),
                     );
                   },
@@ -142,7 +151,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => ComparisonScreen(),
+                        builder: (context) => const ComparisonScreen(),
                       ),
                     );
                   },
@@ -156,7 +165,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => ReportsArchiveScreen(),
+                        builder: (context) => const ReportsArchiveScreen(),
                       ),
                     );
                   },
@@ -170,7 +179,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => AnalyticsScreen(),
+                        builder: (context) => const AnalyticsScreen(),
                       ),
                     );
                   },
@@ -192,6 +201,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // =======================
+  // 📊 كروت الإحصائيات
+  // =======================
   Widget _statCard(String title, String value, IconData icon, Color color) {
     return Card(
       child: Padding(
@@ -214,6 +226,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // =======================
+  // 📦 كروت القائمة
+  // =======================
   Widget _menuCard(
     String title,
     IconData icon,

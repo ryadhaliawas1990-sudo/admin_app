@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import '../db/db_helper.dart';
-import 'hr_screen.dart';
-import 'reports_archive_screen.dart';
 import '../export/monthly_comparison_pdf.dart';
+import 'hr_screen.dart';
 
-class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+class ReportsArchiveScreen extends StatefulWidget {
+  const ReportsArchiveScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  State<ReportsArchiveScreen> createState() => _ReportsArchiveScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _ReportsArchiveScreenState extends State<ReportsArchiveScreen> {
   int totalPeople = 0;
   int totalReports = 0;
 
@@ -44,16 +43,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       if (status.contains("نشط") || status.contains("active")) {
         a++;
-      } else if (status.contains("غير") ||
-          status.contains("inactive")) {
+      } else if (status.contains("غير") || status.contains("inactive")) {
         i++;
       } else {
         u++;
       }
     }
 
-    // 🧠 تحليل ذكي بسيط
-    String alert = "";
+    String alert;
     if (a < i) {
       alert = "⚠️ عدد غير النشطين أعلى من النشطين";
     } else if (reports.isEmpty) {
@@ -94,7 +91,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       backgroundColor: Colors.grey.shade100,
 
       appBar: AppBar(
-        title: const Text("Smart ERP Dashboard"),
+        title: const Text("Reports Archive"),
         centerTitle: true,
         actions: [
           IconButton(
@@ -128,14 +125,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                   const SizedBox(height: 15),
 
-                  // 🧠 تنبيه ذكي
+                  // 🧠 تنبيه
                   Card(
                     color: Colors.black87,
                     child: ListTile(
-                      leading: const Icon(
-                        Icons.notifications,
-                        color: Colors.white,
-                      ),
+                      leading: const Icon(Icons.notifications, color: Colors.white),
                       title: Text(
                         alertMessage,
                         style: const TextStyle(color: Colors.white),
@@ -145,7 +139,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                   const SizedBox(height: 10),
 
-                  // 🚀 الأزرار
+                  // 🚀 أزرار
                   Row(
                     children: [
                       Expanded(
@@ -154,7 +148,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const HrScreen(),
+                                builder: (context) => const HrScreen(),
                               ),
                             );
                           },
@@ -164,29 +158,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    ReportsArchiveScreen(),,
-                              ),
-                            );
-                          },
-                          child: const Text("الأرشيف"),
+                          onPressed: openComparison,
+                          child: const Text("تقرير"),
                         ),
                       ),
                     ],
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: openComparison,
-                      child: const Text("إنشاء تقرير مباينة"),
-                    ),
                   ),
                 ],
               ),

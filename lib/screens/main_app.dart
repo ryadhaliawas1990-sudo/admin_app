@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+
 import 'dashboard_screen.dart';
 import 'hr_screen.dart';
+import 'reports_archive_screen.dart';
 
 class MainApp extends StatefulWidget {
   const MainApp({super.key});
@@ -12,10 +14,10 @@ class MainApp extends StatefulWidget {
 class _MainAppState extends State<MainApp> {
   int index = 0;
 
-  final screens = const [
-    DashboardScreen(),
-    HrScreen(),
-    ReportsScreen(),
+  final List<Widget> screens = [
+    const DashboardScreen(),
+    const HrScreen(),
+    ReportsArchiveScreen(),
   ];
 
   @override
@@ -25,6 +27,7 @@ class _MainAppState extends State<MainApp> {
 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: index,
+
         onTap: (i) {
           setState(() {
             index = i;
@@ -36,10 +39,12 @@ class _MainAppState extends State<MainApp> {
             icon: Icon(Icons.dashboard),
             label: "الرئيسية",
           ),
+
           BottomNavigationBarItem(
             icon: Icon(Icons.people),
             label: "الموارد",
           ),
+
           BottomNavigationBarItem(
             icon: Icon(Icons.bar_chart),
             label: "التقارير",
