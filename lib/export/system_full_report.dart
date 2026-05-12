@@ -1,69 +1,58 @@
 import 'dart:io';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
-
-import '../db/db_helper.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 class SystemFullReport {
 
-  static Future<String> generate() async {
+  static Future<String> export({
+    required List<Map<String, dynamic>> data,
+    required String title,
+  }) async {
 
     final pdf = pw.Document();
 
-    final people = await DBHelper.getPeople();
-    final reports = await DBHelper.getReports();
-    final logs = await DBHelper.getLogs();
-
-    final date = DateTime.now();
-
     pdf.addPage(
-      pw.Page(
-        build: (context) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-
+      pw.MultiPage(
+        build: (context) {
+          return [
             pw.Text(
-              "📊 تقرير النظام الكامل",
+              title,
               style: pw.TextStyle(
-                fontSize: 22,
+                fontSize: 20,
                 fontWeight: pw.FontWeight.bold,
               ),
             ),
 
             pw.SizedBox(height: 20),
 
-            pw.Text("📅 التاريخ: ${date.toIso8601String()}"),
+            pw.Table.fromTextArray(
+              headers: [
+                "الرقم",
+                "الاسم",
+                "الرتبة",
+                "الوحدة",
+                "الحالة",
+              ],
 
-            pw.SizedBox(height: 20),
-
-            pw.Text("👥 عدد الموظفين: ${people.length}"),
-            pw.Text("📄 عدد التقارير: ${reports.length}"),
-            pw.Text("🧠 عدد العمليات: ${logs.length}"),
-
-            pw.SizedBox(height: 20),
-
-            pw.Text(
-              "🧠 آخر العمليات:",
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              data: data.map((e) {
+                return [
+                  (e["number"] ?? "").toString(),
+                  (e["name"] ?? "").toString(),
+                  (e["rank"] ?? "").toString(),
+                  (e["unit"] ?? "").toString(),
+                  (e["status"] ?? "").toString(),
+                ];
+              }).toList(),
             ),
-
-            pw.SizedBox(height: 10),
-
-            ...logs.take(10).map(
-              (log) => pw.Text(
-                "- ${log['action']} | ${log['createdAt']}",
-              ),
-            ),
-          ],
-        ),
+          ];
+        },
       ),
     );
 
     final dir = await getApplicationDocumentsDirectory();
 
     final file = File(
-      "${dir.path}/system_report_${date.millisecondsSinceEpoch}.pdf",
+      "${dir.path}/system_report_${DateTime.now().millisecondsSinceEpoch}.pdf",
     );
 
     await file.writeAsBytes(await pdf.save());

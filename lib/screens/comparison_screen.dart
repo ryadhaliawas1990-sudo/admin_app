@@ -1,479 +1,264 @@
 import 'package:flutter/material.dart';
-import '../db/db_helper.dart';
-import '../export/monthly_comparison_pdf.dart';
+
+import '../services/comparison_service.dart';
+import '../export/comparison_pdf.dart';
+import '../export/comparison_excel.dart';
 
 class ComparisonScreen extends StatefulWidget {
   const ComparisonScreen({super.key});
 
   @override
-  State<ComparisonScreen> createState() =>
-      _ComparisonScreenState();
+  State<ComparisonScreen> createState() => _ComparisonScreenState();
 }
 
-class _ComparisonScreenState
-    extends State<ComparisonScreen> {
+class _ComparisonScreenState extends State<ComparisonScreen> {
 
-  // 📅 الأشهر الديناميكية
-  List<String> months = [];
+  bool loading = true;
 
-  String monthA = "";
-  String monthB = "";
+  List<String> months = [
+    "2026-01",
+    "2026-02",
+    "2026-03",
+  ];
 
-  // 🔎 البحث
-  String searchQuery = "";
+  String fromMonth = "2026-01";
+  String toMonth = "2026-03";
 
-  // 📊 النتائج
-  List<Map<String, dynamic>> added = [];
-  List<Map<String, dynamic>> removed = [];
-  List<Map<String, dynamic>> stable = [];
+  List<Map<String, dynamic>> result = [];
 
-  bool loading = false;
+  List<String> selectedMonths = [];
 
   @override
   void initState() {
     super.initState();
-    loadMonths();
+    load();
   }
 
-  // 📅 تحميل الأشهر من قاعدة البيانات
-  Future<void> loadMonths() async {
+  // =========================
+  // 📊 تحميل المباينة
+  // =========================
+  Future<void> load() async {
+    setState(() => loading = true);
 
-    final data = await DBHelper.getPeople();
+    int start = months.indexOf(fromMonth);
+    int end = months.indexOf(toMonth);
 
-    final extractedMonths = data
-        .map((e) => e["month"]?.toString() ?? "")
-        .where((m) => m.isNotEmpty)
-        .toSet()
-        .toList();
+    if (start > end) {
+      final temp = start;
+      start = end;
+      end = temp;
+    }
 
-    extractedMonths.sort();
+    selectedMonths = months.sublist(start, end + 1);
+
+    final data =
+        await ComparisonService.buildComparison(selectedMonths);
 
     setState(() {
-
-      months = extractedMonths;
-
-      if (months.isNotEmpty) {
-
-        monthA = months.first;
-
-        if (months.length > 1) {
-          monthB = months.last;
-        } else {
-          monthB = months.first;
-        }
-      }
+      result = data;
+      loading = false;
     });
   }
 
-  // 📊 المقارنة
-  Future<void> compare() async {
+  // =========================
+  // 📈 النسبة
+  // =========================
+  double calcPercent(Map<String, dynamic> person) {
+    final monthsMap = person["months"] as Map<String, bool>;
 
-    if (monthA.isEmpty || monthB.isEmpty) {
-      return;
-    }
+    if (monthsMap.isEmpty) return 0;
 
-    setState(() => loading = true);
+    int total = monthsMap.length;
+    int present =
+        monthsMap.values.where((v) => v == true).length;
 
-    final a = await DBHelper.getByMonth(monthA);
-    final b = await DBHelper.getByMonth(monthB);
-
-    final mapA = {
-      for (var e in a) e["number"]: e
-    };
-
-    final mapB = {
-      for (var e in b) e["number"]: e
-    };
-
-    added.clear();
-    removed.clear();
-    stable.clear();
-
-    // 🟡 دخل جديد
-    for (var key in mapB.keys) {
-
-      if (!mapA.containsKey(key)) {
-        added.add(mapB[key]!);
-      }
-    }
-
-    // 🔴 خرج
-    for (var key in mapA.keys) {
-
-      if (!mapB.containsKey(key)) {
-        removed.add(mapA[key]!);
-      }
-    }
-
-    // 🟢 ثابت
-    for (var key in mapA.keys) {
-
-      if (mapB.containsKey(key)) {
-        stable.add(mapA[key]!);
-      }
-    }
-
-    setState(() => loading = false);
+    return present / total;
   }
 
-  // 📄 تصدير PDF
+  // =========================
+  // 📤 PDF
+  // =========================
   Future<void> exportPdf() async {
+    final path = await ComparisonPdf.export(
+      months: selectedMonths,
+      data: result,
+    );
 
-    await MonthlyComparisonPdf.export([
-      monthA,
-      monthB,
-    ]);
-  }
+    if (!mounted) return;
 
-  // 🔎 فلترة القوائم
-  List<Map<String, dynamic>> filterList(
-    List<Map<String, dynamic>> list,
-  ) {
-
-    if (searchQuery.isEmpty) {
-      return list;
-    }
-
-    return list.where((p) {
-
-      final name =
-          (p["name"] ?? "").toString();
-
-      final number =
-          (p["number"] ?? "").toString();
-
-      return name.contains(searchQuery) ||
-          number.contains(searchQuery);
-
-    }).toList();
-  }
-
-  // 📋 بناء القوائم
-  Widget buildList(
-    String title,
-    List<Map<String, dynamic>> list,
-    Color color,
-  ) {
-
-    final filtered = filterList(list);
-
-    return Expanded(
-      child: Card(
-        elevation: 4,
-
-        child: Column(
-          children: [
-
-            Container(
-              width: double.infinity,
-              color: color,
-              padding: const EdgeInsets.all(10),
-
-              child: Text(
-                "$title (${filtered.length})",
-
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-
-            Expanded(
-              child: filtered.isEmpty
-                  ? const Center(
-                      child: Text("لا توجد بيانات"),
-                    )
-                  : ListView.builder(
-                      itemCount: filtered.length,
-
-                      itemBuilder: (context, index) {
-
-                        final p = filtered[index];
-
-                        return Card(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-
-                          child: ListTile(
-                            leading: const CircleAvatar(
-                              child: Icon(Icons.person),
-                            ),
-
-                            title: Text(
-                              p["name"] ?? "",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-
-                            subtitle: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                              children: [
-
-                                Text(
-                                  "الرقم: ${p["number"]}",
-                                ),
-
-                                Text(
-                                  "الرتبة: ${p["rank"] ?? ""}",
-                                ),
-
-                                Text(
-                                  "الوحدة: ${p["unit"] ?? ""}",
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("تم حفظ PDF: $path")),
     );
   }
 
+  // =========================
+  // 📤 Excel
+  // =========================
+  Future<void> exportExcel() async {
+    final path = await ComparisonExcel.export(
+      months: selectedMonths,
+      data: result,
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("تم حفظ Excel: $path")),
+    );
+  }
+
+  // =========================
+  // UI
+  // =========================
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-
       appBar: AppBar(
-        title: const Text("نظام المقارنة الذكي"),
-        centerTitle: true,
+        title: const Text("المباينة العسكرية"),
         backgroundColor: Colors.blue,
-
-        actions: const [
-
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10),
-
-            child: Center(
-              child: Text(
-                "تصميم: م/رياض عواس",
-                style: TextStyle(fontSize: 11),
-              ),
-            ),
-          ),
-        ],
       ),
 
-      body: Column(
-        children: [
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
 
-          // 🔎 البحث
-          Padding(
-            padding: const EdgeInsets.all(10),
+                // 📅 اختيار الفترة
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Row(
+                    children: [
 
-            child: TextField(
-              decoration: const InputDecoration(
-                labelText: "بحث بالاسم أو الرقم",
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
-
-              onChanged: (value) {
-
-                setState(() {
-                  searchQuery = value;
-                });
-              },
-            ),
-          ),
-
-          // 🎛️ لوحة التحكم
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-            ),
-
-            child: Card(
-              elevation: 5,
-
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-
-                child: Column(
-                  children: [
-
-                    // 📅 اختيار الأشهر
-                    Row(
-                      children: [
-
-                        const Text(
-                          "من:",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      Expanded(
+                        child: DropdownButton<String>(
+                          value: fromMonth,
+                          isExpanded: true,
+                          items: months.map((m) {
+                            return DropdownMenuItem(
+                              value: m,
+                              child: Text("من: $m"),
+                            );
+                          }).toList(),
+                          onChanged: (v) {
+                            setState(() => fromMonth = v!);
+                            load();
+                          },
                         ),
+                      ),
 
-                        const SizedBox(width: 10),
+                      const SizedBox(width: 10),
 
-                        Expanded(
-                          child: DropdownButton<String>(
-                            value: monthA.isEmpty
-                                ? null
-                                : monthA,
-
-                            isExpanded: true,
-
-                            hint: const Text(
-                              "اختر الشهر",
-                            ),
-
-                            items: months.map((m) {
-
-                              return DropdownMenuItem(
-                                value: m,
-                                child: Text(m),
-                              );
-                            }).toList(),
-
-                            onChanged: (v) {
-
-                              setState(() {
-                                monthA = v!;
-                              });
-                            },
-                          ),
+                      Expanded(
+                        child: DropdownButton<String>(
+                          value: toMonth,
+                          isExpanded: true,
+                          items: months.map((m) {
+                            return DropdownMenuItem(
+                              value: m,
+                              child: Text("إلى: $m"),
+                            );
+                          }).toList(),
+                          onChanged: (v) {
+                            setState(() => toMonth = v!);
+                            load();
+                          },
                         ),
-
-                        const SizedBox(width: 15),
-
-                        const Text(
-                          "إلى:",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-
-                        const SizedBox(width: 10),
-
-                        Expanded(
-                          child: DropdownButton<String>(
-                            value: monthB.isEmpty
-                                ? null
-                                : monthB,
-
-                            isExpanded: true,
-
-                            hint: const Text(
-                              "اختر الشهر",
-                            ),
-
-                            items: months.map((m) {
-
-                              return DropdownMenuItem(
-                                value: m,
-                                child: Text(m),
-                              );
-                            }).toList(),
-
-                            onChanged: (v) {
-
-                              setState(() {
-                                monthB = v!;
-                              });
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    // 📊 الأزرار
-                    Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.spaceAround,
-
-                      children: [
-
-                        ElevatedButton.icon(
-                          onPressed: compare,
-
-                          icon: const Icon(
-                            Icons.compare_arrows,
-                          ),
-
-                          label: const Text(
-                            "تنفيذ المقارنة",
-                          ),
-                        ),
-
-                        ElevatedButton.icon(
-                          onPressed: exportPdf,
-
-                          icon: const Icon(
-                            Icons.picture_as_pdf,
-                          ),
-
-                          label: const Text(
-                            "تصدير PDF",
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
-          ),
 
-          const SizedBox(height: 10),
+                // 📤 أزرار التصدير
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Row(
+                    children: [
 
-          // ⏳ تحميل
-          if (loading)
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: CircularProgressIndicator(),
-            ),
-
-          // 📊 النتائج
-          if (!loading)
-            Expanded(
-              child: Column(
-                children: [
-
-                  // 🟡 + 🔴
-                  Expanded(
-                    child: Row(
-                      children: [
-
-                        buildList(
-                          "🟡 دخل جديد",
-                          added,
-                          Colors.green,
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: exportPdf,
+                          child: const Text("PDF"),
                         ),
+                      ),
 
-                        buildList(
-                          "🔴 خرج",
-                          removed,
-                          Colors.red,
+                      const SizedBox(width: 10),
+
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: exportExcel,
+                          child: const Text("Excel"),
                         ),
-                      ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // 📋 الجدول
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SingleChildScrollView(
+                      child: DataTable(
+                        columns: [
+
+                          const DataColumn(label: Text("الرقم")),
+                          const DataColumn(label: Text("الاسم")),
+                          const DataColumn(label: Text("الرتبة")),
+
+                          ...selectedMonths.map(
+                            (m) => DataColumn(label: Text(m)),
+                          ),
+
+                          const DataColumn(label: Text("النسبة")),
+                        ],
+
+                        rows: result.map((p) {
+
+                          final monthsMap =
+                              p["months"] as Map<String, bool>;
+
+                          return DataRow(
+                            cells: [
+
+                              DataCell(Text(p["number"] ?? "")),
+                              DataCell(Text(p["name"] ?? "")),
+                              DataCell(Text(p["rank"] ?? "")),
+
+                              ...selectedMonths.map((m) {
+                                final ok = monthsMap[m] ?? false;
+
+                                return DataCell(
+                                  Text(
+                                    ok ? "✔" : "✖",
+                                    style: TextStyle(
+                                      color: ok
+                                          ? Colors.green
+                                          : Colors.red,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                );
+                              }),
+
+                              DataCell(
+                                Text(
+                                  "${(calcPercent(p) * 100).toStringAsFixed(0)}%",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                      ),
                     ),
                   ),
-
-                  // 🟢
-                  Expanded(
-                    child: buildList(
-                      "🟢 ثابت",
-                      stable,
-                      Colors.blue,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-        ],
-      ),
     );
   }
 }

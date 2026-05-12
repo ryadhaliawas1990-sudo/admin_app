@@ -2,30 +2,29 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class DBHelper {
+
   static Database? _db;
 
   // =========================
-  // 📌 INIT DATABASE
+  // 🧠 فتح قاعدة البيانات
   // =========================
-
   static Future<Database> get database async {
     if (_db != null) return _db!;
-    _db = await initDB();
+
+    _db = await _initDB();
     return _db!;
   }
 
-  static Future<Database> initDB() async {
-    String path = join(await getDatabasesPath(), 'admin.db');
+  static Future<Database> _initDB() async {
+    final path = join(await getDatabasesPath(), 'admin_app.db');
 
     return await openDatabase(
       path,
-      version: 4,
-
+      version: 1,
       onCreate: (db, version) async {
 
-        // 👥 PEOPLE
         await db.execute('''
-          CREATE TABLE people(
+          CREATE TABLE people (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
             number TEXT,
@@ -35,71 +34,21 @@ class DBHelper {
             month TEXT
           )
         ''');
-
-        // 📁 REPORTS
-        await db.execute('''
-          CREATE TABLE reports(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT,
-            monthA TEXT,
-            monthB TEXT,
-            filePath TEXT,
-            createdAt TEXT
-          )
-        ''');
-
-        // 🧠 LOGS (سجل النشاط)
-        await db.execute('''
-          CREATE TABLE logs(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            action TEXT,
-            createdAt TEXT
-          )
-        ''');
       },
     );
   }
 
   // =========================
-  // 🧠 LOG SYSTEM
+  // 👤 جلب كل الأشخاص
   // =========================
-
-  static Future<void> addLog(String action) async {
-    final db = await database;
-
-    await db.insert('logs', {
-      'action': action,
-      'createdAt': DateTime.now().toIso8601String(),
-    });
-  }
-
-  static Future<List<Map<String, dynamic>>> getLogs() async {
-    final db = await database;
-
-    return await db.query(
-      'logs',
-      orderBy: 'id DESC',
-    );
-  }
-
-  // =========================
-  // 👥 PEOPLE
-  // =========================
-
-  static Future<int> insertPerson(Map<String, dynamic> data) async {
-    final db = await database;
-    final res = await db.insert('people', data);
-
-    await addLog("تم إضافة موظف");
-
-    return res;
-  }
-
   static Future<List<Map<String, dynamic>>> getPeople() async {
     final db = await database;
-    return await db.query('people', orderBy: 'id DESC');
+    return await db.query('people');
   }
 
+  // =========================
+  // 📅 جلب حسب الشهر (المباينة)
+  // =========================
   static Future<List<Map<String, dynamic>>> getByMonth(String month) async {
     final db = await database;
 
@@ -110,6 +59,44 @@ class DBHelper {
     );
   }
 
+  // =========================
+  // ➕ إدخال شخص
+  // =========================
+  static Future<int> insertPerson(Map<String, dynamic> data) async {
+    final db = await database;
+    return await db.insert('people', data);
+  }
+
+  // =========================
+  // ✏️ تحديث شخص
+  // =========================
+  static Future<int> updatePerson(int id, Map<String, dynamic> data) async {
+    final db = await database;
+
+    return await db.update(
+      'people',
+      data,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // =========================
+  // ❌ حذف شخص
+  // =========================
+  static Future<int> deletePerson(int id) async {
+    final db = await database;
+
+    return await db.delete(
+      'people',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // =========================
+  // 🔍 بحث
+  // =========================
   static Future<List<Map<String, dynamic>>> searchPeople(String query) async {
     final db = await database;
 
@@ -120,69 +107,18 @@ class DBHelper {
     );
   }
 
-  static Future<int> updatePerson(int id, Map<String, dynamic> data) async {
-    final db = await database;
-
-    final res = await db.update(
-      'people',
-      data,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-
-    await addLog("تم تعديل موظف");
-
-    return res;
-  }
-
-  static Future<void> deletePerson(int id) async {
-    final db = await database;
-
-    await db.delete(
-      'people',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-
-    await addLog("تم حذف موظف");
-  }
-
-  static Future<List<Map<String, dynamic>>> getMonths() async {
-    final db = await database;
-
-    return await db.rawQuery(
-      'SELECT DISTINCT month FROM people ORDER BY month DESC',
-    );
-  }
-
   // =========================
-  // 📁 REPORTS
+  // 📊 جلب التقارير (اختياري للتوسع لاحقاً)
   // =========================
-
-  static Future<int> insertReport(Map<String, dynamic> data) async {
-    final db = await database;
-    final res = await db.insert('reports', data);
-
-    await addLog("تم إنشاء تقرير");
-
-    return res;
-  }
-
   static Future<List<Map<String, dynamic>>> getReports() async {
     final db = await database;
-
-    return await db.query('reports', orderBy: 'id DESC');
+    return await db.query('people'); // مؤقتاً نفس الجدول
   }
 
-  static Future<void> deleteReport(int id) async {
-    final db = await database;
-
-    await db.delete(
-      'reports',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-
-    await addLog("تم حذف تقرير");
+  // =========================
+  // 🧾 سجل العمليات (اختياري)
+  // =========================
+  static Future<List<Map<String, dynamic>>> getLogs() async {
+    return [];
   }
 }
