@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../services/military_comparison_engine.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -20,17 +19,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> load() async {
 
-    // 👤 الأشخاص
+    // 👤 بيانات تجريبية (بدون Engine خارجي)
     final people = [
       {"number": "1", "name": "أحمد"},
       {"number": "2", "name": "محمد"},
       {"number": "3", "name": "خالد"},
     ];
 
-    // 📅 الأشهر
     final months = ["2026-01", "2026-02"];
 
-    // 📊 بيانات الأشهر (الحالة من Excel لاحقًا)
     final dataByMonth = {
       "2026-01": [
         {"number": "1", "status": "نشط"},
@@ -42,14 +39,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ],
     };
 
-    final res = MilitaryComparisonEngine.compare(
-      people: people,
-      months: months,
-      dataByMonth: dataByMonth,
-    );
+    // 🧠 منطق مباينة داخلي بسيط (بدون أي ملف خارجي)
+    final List<Map<String, dynamic>> results = [];
+
+    int newCount = 0;
+    int missingCount = 0;
+    int changedCount = 0;
+    int stableCount = 0;
+
+    for (final p in people) {
+
+      final monthsMap = <String, bool>{};
+
+      for (final m in months) {
+        final list = dataByMonth[m] ?? [];
+
+        final found = list.any((e) => e["number"] == p["number"]);
+
+        monthsMap[m] = found;
+
+        if (found && m == "2026-01") stableCount++;
+        if (!found && m == "2026-02") missingCount++;
+      }
+
+      results.add({
+        "number": p["number"],
+        "name": p["name"],
+        "months": monthsMap,
+      });
+    }
 
     setState(() {
-      result = res;
+      result = {
+        "result": results,
+        "summary": {
+          "newCount": newCount,
+          "missingCount": missingCount,
+          "changedCount": changedCount,
+          "stableCount": stableCount,
+        }
+      };
     });
   }
 
@@ -72,14 +101,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
 
-                  Text(
+                  const Text(
                     "تصميم رياض عواس",
                     style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
 
                   const SizedBox(height: 10),
 
-                  // 📊 إحصائيات
                   Row(
                     children: [
                       _card("جدد", summary["newCount"] ?? 0, Colors.green),

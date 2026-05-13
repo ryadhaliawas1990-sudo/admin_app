@@ -6,7 +6,7 @@ class DBHelper {
   static Database? _db;
 
   // =========================
-  // 🧠 فتح قاعدة البيانات
+  // فتح قاعدة البيانات
   // =========================
   static Future<Database> get database async {
     if (_db != null) return _db!;
@@ -33,24 +33,29 @@ class DBHelper {
             month TEXT
           )
         ''');
-
-        // 🔥 تحسين الأداء (مهم للمباينة)
-        await db.execute('CREATE INDEX idx_month ON people(month)');
-        await db.execute('CREATE INDEX idx_number ON people(number)');
       },
     );
   }
 
   // =========================
-  // ➕ إدخال أو تحديث (مهم جدًا)
+  // ➕ إدخال (متوافق مع كل الملفات القديمة)
   // =========================
-  static Future<void> insertOrUpdate(Map<String, dynamic> data) async {
+  static Future<int> insertPerson(Map<String, dynamic> data) async {
+    final db = await database;
+    return await db.insert('people', data);
+  }
+
+  // =========================
+  // ✏️ تحديث
+  // =========================
+  static Future<int> updatePerson(int id, Map<String, dynamic> data) async {
     final db = await database;
 
-    await db.insert(
+    return await db.update(
       'people',
       data,
-      conflictAlgorithm: ConflictAlgorithm.replace,
+      where: 'id = ?',
+      whereArgs: [id],
     );
   }
 
@@ -73,6 +78,14 @@ class DBHelper {
       where: 'month = ?',
       whereArgs: [month],
     );
+  }
+
+  // =========================
+  // 📊 تقارير (حل خطأ GitHub)
+  // =========================
+  static Future<List<Map<String, dynamic>>> getReports() async {
+    final db = await database;
+    return await db.query('people');
   }
 
   // =========================
