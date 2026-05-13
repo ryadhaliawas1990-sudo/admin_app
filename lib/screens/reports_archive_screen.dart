@@ -7,10 +7,13 @@ class ReportsArchiveScreen extends StatefulWidget {
   const ReportsArchiveScreen({super.key});
 
   @override
-  State<ReportsArchiveScreen> createState() => _ReportsArchiveScreenState();
+  State<ReportsArchiveScreen> createState() =>
+      _ReportsArchiveScreenState();
 }
 
-class _ReportsArchiveScreenState extends State<ReportsArchiveScreen> {
+class _ReportsArchiveScreenState
+    extends State<ReportsArchiveScreen> {
+
   int totalPeople = 0;
   int totalReports = 0;
 
@@ -29,6 +32,7 @@ class _ReportsArchiveScreenState extends State<ReportsArchiveScreen> {
   }
 
   Future<void> loadAnalytics() async {
+
     setState(() => loading = true);
 
     final people = await DBHelper.getPeople();
@@ -39,18 +43,28 @@ class _ReportsArchiveScreenState extends State<ReportsArchiveScreen> {
     int u = 0;
 
     for (var p in people) {
-      final status = (p["status"] ?? "").toString().toLowerCase();
 
-      if (status.contains("نشط") || status.contains("active")) {
+      final status =
+          (p["status"] ?? "").toString().toLowerCase();
+
+      if (status.contains("نشط") ||
+          status.contains("active")) {
+
         a++;
-      } else if (status.contains("غير") || status.contains("inactive")) {
+
+      } else if (status.contains("غير") ||
+          status.contains("inactive")) {
+
         i++;
+
       } else {
+
         u++;
       }
     }
 
     setState(() {
+
       totalPeople = people.length;
       totalReports = reports.length;
 
@@ -59,35 +73,103 @@ class _ReportsArchiveScreenState extends State<ReportsArchiveScreen> {
       unknown = u;
 
       alertMessage = "النظام يعمل";
+
       loading = false;
     });
   }
 
-  // ✅ FIXED
-  void openComparison() async {
+  // ✅ تصدير PDF النهائي
+  Future<void> openComparison() async {
+
+    final people = await DBHelper.getPeople();
+
     await MonthlyComparisonPdf.export(
-      months: ["2026-01", "2026-02", "2026-03"],
-      people: await DBHelper.getPeople(),
-      data: {
-        for (var p in await DBHelper.getPeople())
-          p["number"]: {"months": {}}
-      },
-      topText: "تقرير المباينة",
+
+      months: [
+        "2026-01",
+        "2026-02",
+        "2026-03",
+      ],
+
+      people: people,
+
+      data: {},
+
+      topText: "تقرير الأرشيف",
+
       leftSignature: "القائد",
-      rightSignature: "شؤون الأفراد",
+
+      rightSignature: "الأرشيف",
     );
   }
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Reports")),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: openComparison,
-          child: const Text("تقرير"),
-        ),
+
+      appBar: AppBar(
+        title: const Text("Reports"),
       ),
+
+      body: loading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.people),
+                      title: const Text("إجمالي الأفراد"),
+                      trailing: Text("$totalPeople"),
+                    ),
+                  ),
+
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.description),
+                      title: const Text("إجمالي التقارير"),
+                      trailing: Text("$totalReports"),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.info),
+                      title: Text(alertMessage),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  ElevatedButton(
+                    onPressed: openComparison,
+                    child: const Text("تصدير تقرير PDF"),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  ElevatedButton(
+                    onPressed: () {
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const HrScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text("فتح الموارد البشرية"),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }

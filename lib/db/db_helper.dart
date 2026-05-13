@@ -40,15 +40,39 @@ class DBHelper {
   // =========================
   // ➕ إدخال
   // =========================
-  static Future<int> insertPerson(Map<String, dynamic> data) async {
+  static Future<int> insertPerson(
+    Map<String, dynamic> data,
+  ) async {
     final db = await database;
-    return await db.insert('people', data);
+
+    return await db.insert(
+      'people',
+      data,
+    );
+  }
+
+  // =========================
+  // 🔄 إدخال أو تحديث
+  // =========================
+  static Future<void> insertOrUpdate(
+    Map<String, dynamic> data,
+  ) async {
+    final db = await database;
+
+    await db.insert(
+      'people',
+      data,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   // =========================
   // ✏️ تحديث
   // =========================
-  static Future<int> updatePerson(int id, Map<String, dynamic> data) async {
+  static Future<int> updatePerson(
+    int id,
+    Map<String, dynamic> data,
+  ) async {
     final db = await database;
 
     return await db.update(
@@ -70,7 +94,9 @@ class DBHelper {
   // =========================
   // 📅 جلب حسب الشهر
   // =========================
-  static Future<List<Map<String, dynamic>>> getByMonth(String month) async {
+  static Future<List<Map<String, dynamic>>> getByMonth(
+    String month,
+  ) async {
     final db = await database;
 
     return await db.query(
@@ -91,7 +117,9 @@ class DBHelper {
   // =========================
   // 🔍 بحث
   // =========================
-  static Future<List<Map<String, dynamic>>> searchPeople(String query) async {
+  static Future<List<Map<String, dynamic>>> searchPeople(
+    String query,
+  ) async {
     final db = await database;
 
     return await db.query(

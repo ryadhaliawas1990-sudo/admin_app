@@ -14,12 +14,14 @@ class HrScreen extends StatefulWidget {
 }
 
 class _HrScreenState extends State<HrScreen> {
+
   final nameController = TextEditingController();
   final numberController = TextEditingController();
   final rankController = TextEditingController();
   final statusController = TextEditingController();
 
   List<Map<String, dynamic>> people = [];
+
   String searchQuery = "";
   String selectedMonth = "2026-01";
 
@@ -28,6 +30,7 @@ class _HrScreenState extends State<HrScreen> {
   @override
   void initState() {
     super.initState();
+
     loadData();
 
     AppRefresher.refreshNotifier.addListener(() {
@@ -72,7 +75,9 @@ class _HrScreenState extends State<HrScreen> {
     });
 
     if (!mounted) return;
+
     Navigator.pop(context);
+
     loadData();
   }
 
@@ -87,7 +92,9 @@ class _HrScreenState extends State<HrScreen> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("تم حفظ Excel في: $path")),
+      SnackBar(
+        content: Text("تم حفظ Excel في: $path"),
+      ),
     );
   }
 
@@ -96,17 +103,34 @@ class _HrScreenState extends State<HrScreen> {
     loadData();
   }
 
-  // ✅ FIXED EXPORT
+  // ✅ تصدير PDF النهائي
   Future<void> exportComparisonPdf() async {
+
     await MonthlyComparisonPdf.export(
-      months: ["2026-01", "2026-02", "2026-03"],
+
+      months: [
+        "2026-01",
+        "2026-02",
+        "2026-03",
+      ],
+
       people: people,
+
       data: {
         for (var p in people)
-          p["number"]: {"months": {}}
+          p["number"]: {
+            "months": {
+              "2026-01": p["status"] ?? "-",
+              "2026-02": p["status"] ?? "-",
+              "2026-03": p["status"] ?? "-",
+            }
+          }
       },
+
       topText: "تقرير المباينة النهائي",
+
       leftSignature: "القائد",
+
       rightSignature: "شؤون الأفراد",
     );
   }
@@ -120,9 +144,74 @@ class _HrScreenState extends State<HrScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      appBar: AppBar(title: const Text("HR")),
-      body: const Center(child: Text("OK")),
+      appBar: AppBar(
+        title: const Text("HR"),
+      ),
+
+      body: Column(
+        children: [
+
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              children: [
+
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: exportComparisonPdf,
+                    child: const Text("PDF"),
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: exportExcel,
+                    child: const Text("Excel"),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Expanded(
+            child: ListView.builder(
+              itemCount: people.length,
+              itemBuilder: (context, index) {
+
+                final p = people[index];
+
+                return Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.person),
+
+                    title: Text(
+                      p["name"] ?? "",
+                    ),
+
+                    subtitle: Text(
+                      "رقم: ${p["number"]} | ${p["unit"]}",
+                    ),
+
+                    trailing: IconButton(
+                      icon: const Icon(
+                        Icons.delete,
+                        color: Colors.red,
+                      ),
+                      onPressed: () {
+                        deletePerson(p["id"]);
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
