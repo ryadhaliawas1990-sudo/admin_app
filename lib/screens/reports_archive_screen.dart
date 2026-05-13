@@ -11,8 +11,7 @@ class ReportsArchiveScreen extends StatefulWidget {
       _ReportsArchiveScreenState();
 }
 
-class _ReportsArchiveScreenState
-    extends State<ReportsArchiveScreen> {
+class _ReportsArchiveScreenState extends State<ReportsArchiveScreen> {
 
   int totalPeople = 0;
   int totalReports = 0;
@@ -43,28 +42,18 @@ class _ReportsArchiveScreenState
     int u = 0;
 
     for (var p in people) {
+      final status = (p["status"] ?? "").toString().toLowerCase();
 
-      final status =
-          (p["status"] ?? "").toString().toLowerCase();
-
-      if (status.contains("نشط") ||
-          status.contains("active")) {
-
+      if (status.contains("نشط") || status.contains("active")) {
         a++;
-
-      } else if (status.contains("غير") ||
-          status.contains("inactive")) {
-
+      } else if (status.contains("غير") || status.contains("inactive")) {
         i++;
-
       } else {
-
         u++;
       }
     }
 
     setState(() {
-
       totalPeople = people.length;
       totalReports = reports.length;
 
@@ -72,50 +61,39 @@ class _ReportsArchiveScreenState
       inactive = i;
       unknown = u;
 
-      alertMessage = "النظام يعمل";
+      alertMessage = "النظام يعمل بشكل طبيعي";
 
       loading = false;
     });
   }
 
-  // ✅ تصدير PDF النهائي
+  // ✅ التصدير الصحيح
   Future<void> openComparison() async {
 
     final people = await DBHelper.getPeople();
 
     await MonthlyComparisonPdf.export(
-
       months: [
         "2026-01",
         "2026-02",
         "2026-03",
       ],
-
       people: people,
-
-      data: {},
-
-      topText: "تقرير الأرشيف",
-
-      leftSignature: "القائد",
-
-      rightSignature: "الأرشيف",
     );
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
 
       appBar: AppBar(
-        title: const Text("Reports"),
+        title: const Text("Reports Archive"),
+        centerTitle: true,
       ),
 
       body: loading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
+          ? const Center(child: CircularProgressIndicator())
           : Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -150,14 +128,13 @@ class _ReportsArchiveScreenState
 
                   ElevatedButton(
                     onPressed: openComparison,
-                    child: const Text("تصدير تقرير PDF"),
+                    child: const Text("تصدير PDF"),
                   ),
 
                   const SizedBox(height: 10),
 
                   ElevatedButton(
                     onPressed: () {
-
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -165,7 +142,7 @@ class _ReportsArchiveScreenState
                         ),
                       );
                     },
-                    child: const Text("فتح الموارد البشرية"),
+                    child: const Text("HR"),
                   ),
                 ],
               ),

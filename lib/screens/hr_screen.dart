@@ -30,7 +30,6 @@ class _HrScreenState extends State<HrScreen> {
   @override
   void initState() {
     super.initState();
-
     loadData();
 
     AppRefresher.refreshNotifier.addListener(() {
@@ -51,7 +50,7 @@ class _HrScreenState extends State<HrScreen> {
   }
 
   Future<void> addPerson() async {
-    await DBHelper.insertOrUpdate({
+    await DBHelper.insertPerson({
       "name": nameController.text,
       "number": numberController.text,
       "rank": rankController.text,
@@ -75,9 +74,7 @@ class _HrScreenState extends State<HrScreen> {
     });
 
     if (!mounted) return;
-
     Navigator.pop(context);
-
     loadData();
   }
 
@@ -92,9 +89,7 @@ class _HrScreenState extends State<HrScreen> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("تم حفظ Excel في: $path"),
-      ),
+      SnackBar(content: Text("تم حفظ Excel في: $path")),
     );
   }
 
@@ -103,35 +98,15 @@ class _HrScreenState extends State<HrScreen> {
     loadData();
   }
 
-  // ✅ تصدير PDF النهائي
+  // ✅ التصدير الصحيح الموحد
   Future<void> exportComparisonPdf() async {
-
     await MonthlyComparisonPdf.export(
-
       months: [
         "2026-01",
         "2026-02",
         "2026-03",
       ],
-
       people: people,
-
-      data: {
-        for (var p in people)
-          p["number"]: {
-            "months": {
-              "2026-01": p["status"] ?? "-",
-              "2026-02": p["status"] ?? "-",
-              "2026-03": p["status"] ?? "-",
-            }
-          }
-      },
-
-      topText: "تقرير المباينة النهائي",
-
-      leftSignature: "القائد",
-
-      rightSignature: "شؤون الأفراد",
     );
   }
 
@@ -144,11 +119,8 @@ class _HrScreenState extends State<HrScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("HR"),
-      ),
+      appBar: AppBar(title: const Text("HR")),
 
       body: Column(
         children: [
@@ -187,23 +159,11 @@ class _HrScreenState extends State<HrScreen> {
                 return Card(
                   child: ListTile(
                     leading: const Icon(Icons.person),
-
-                    title: Text(
-                      p["name"] ?? "",
-                    ),
-
-                    subtitle: Text(
-                      "رقم: ${p["number"]} | ${p["unit"]}",
-                    ),
-
+                    title: Text(p["name"] ?? ""),
+                    subtitle: Text("رقم: ${p["number"]} | ${p["unit"]}"),
                     trailing: IconButton(
-                      icon: const Icon(
-                        Icons.delete,
-                        color: Colors.red,
-                      ),
-                      onPressed: () {
-                        deletePerson(p["id"]);
-                      },
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => deletePerson(p["id"]),
                     ),
                   ),
                 );

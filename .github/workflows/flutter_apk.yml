@@ -1,35 +1,38 @@
-name: Build Flutter APK
+name: Flutter APK Build
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ جلب الكود
-      - name: Checkout repository
+      - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      # 2️⃣ إعداد Flutter
-      - name: Set up Flutter
+      - name: ☕ Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # ✅ تثبيت Flutter بشكل ثابت (بدون مشاكل channel/version)
+      - name: 🟦 Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: 'stable'
+          channel: stable
 
-      # 3️⃣ تحميل dependencies
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: flutter pub get
 
-      # 4️⃣ بناء APK
-      - name: Build APK (release)
+      - name: 🔨 Build APK
         run: flutter build apk --release
 
-      # 5️⃣ رفع APK كـ Artifact
-      - name: Upload APK
+      - name: 📤 Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-apk
+          name: app-release
           path: build/app/outputs/flutter-apk/app-release.apk

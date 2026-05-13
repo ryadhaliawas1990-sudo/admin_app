@@ -6,17 +6,8 @@ import 'package:path_provider/path_provider.dart';
 class MonthlyComparisonPdf {
 
   static Future<String> export({
-
     required List<String> months,
-
-    required List<Map<String, dynamic>> data,
-
-    // 👇 جعلها اختيارية حتى لا يكسر البناء
-    List<Map<String, dynamic>>? people,
-    String? topText,
-    String? leftSignature,
-    String? rightSignature,
-
+    required List<Map<String, dynamic>> people,
   }) async {
 
     final pdf = pw.Document();
@@ -25,10 +16,11 @@ class MonthlyComparisonPdf {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4.landscape,
         build: (context) {
+
           return [
 
             pw.Text(
-              topText ?? "تقرير المباينة",
+              "تقرير المباينة",
               style: pw.TextStyle(
                 fontSize: 18,
                 fontWeight: pw.FontWeight.bold,
@@ -41,7 +33,6 @@ class MonthlyComparisonPdf {
               border: pw.TableBorder.all(),
               children: [
 
-                // HEADER
                 pw.TableRow(
                   children: [
                     pw.Text("الرقم"),
@@ -51,35 +42,25 @@ class MonthlyComparisonPdf {
                   ],
                 ),
 
-                // DATA
-                ...data.map((p) {
+                ...people.map((p) {
 
                   final monthsMap =
-                      (p["months"] ?? {}) as Map;
+                      (p["months"] ?? {}) as Map<String, dynamic>;
 
                   return pw.TableRow(
                     children: [
-                      pw.Text(p["number"]?.toString() ?? ""),
-                      pw.Text(p["name"]?.toString() ?? ""),
-                      pw.Text(p["rank"]?.toString() ?? ""),
+                      pw.Text((p["number"] ?? "").toString()),
+                      pw.Text((p["name"] ?? "").toString()),
+                      pw.Text((p["rank"] ?? "").toString()),
 
                       ...months.map((m) {
-                        final val = monthsMap[m] ?? "-";
-                        return pw.Text(val.toString());
+                        return pw.Text(
+                          (monthsMap[m] ?? "-").toString(),
+                        );
                       }),
                     ],
                   );
                 }),
-              ],
-            ),
-
-            pw.SizedBox(height: 20),
-
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Text(leftSignature ?? ""),
-                pw.Text(rightSignature ?? ""),
               ],
             ),
           ];
