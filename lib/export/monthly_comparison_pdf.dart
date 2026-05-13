@@ -7,128 +7,58 @@ class MonthlyComparisonPdf {
 
   static Future<String> export({
     required List<String> months,
-    required List<Map<String, dynamic>> people,
-    required Map<String, dynamic> data,
-    required String topText,
-    required String leftSignature,
-    required String rightSignature,
+    required List<Map<String, dynamic>> data,
   }) async {
 
     final pdf = pw.Document();
 
-    // 📌 تحديد الاتجاه حسب عدد الأشهر
-    final bool isLandscape = months.length > 5;
-
-    final PdfPageFormat pageFormat =
-        isLandscape ? PdfPageFormat.a4.landscape : PdfPageFormat.a4;
-
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: pageFormat,
+        pageFormat: PdfPageFormat.a4.landscape,
         build: (context) {
-
           return [
-
-            // 🟢 العنوان العلوي
             pw.Text(
-              topText,
+              "تقرير المباينة",
               style: pw.TextStyle(
-                fontSize: 14,
+                fontSize: 18,
                 fontWeight: pw.FontWeight.bold,
               ),
             ),
 
             pw.SizedBox(height: 10),
 
-            // 👤 بيانات الأشخاص
-            ...people.map((p) {
-
-              final number = p["number"]?.toString() ?? "";
-
-              return pw.Container(
-                margin: const pw.EdgeInsets.only(bottom: 10),
-                padding: const pw.EdgeInsets.all(8),
-                decoration: pw.BoxDecoration(
-                  border: pw.Border.all(),
-                ),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-
-                    pw.Text("الرتبة: ${p["rank"] ?? "-"}"),
-                    pw.Text("الرقم: $number"),
-                    pw.Text(
-                      "الاسم: ${p["name"] ?? "-"}",
-                      style: pw.TextStyle(
-                        fontSize: 12,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
-                    ),
-
-                    pw.SizedBox(height: 8),
-
-                    // 📊 الجدول
-                    pw.Table(
-                      border: pw.TableBorder.all(),
-                      children: [
-
-                        // العناوين (الأشهر)
-                        pw.TableRow(
-                          children: months.map((m) {
-                            return pw.Padding(
-                              padding: const pw.EdgeInsets.all(5),
-                              child: pw.Text(
-                                m,
-                                style: pw.TextStyle(fontSize: 10),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-
-                        // الصف (الحالات)
-                        pw.TableRow(
-                          children: months.map((m) {
-
-                            final status = data[number]?["months"]?[m] ?? "-";
-
-                            return pw.Padding(
-                              padding: const pw.EdgeInsets.all(5),
-                              child: pw.Text(
-                                status,
-                                style: pw.TextStyle(fontSize: 10),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            }),
-
-            pw.SizedBox(height: 30),
-
-            // ✍️ التواقيع
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            pw.Table(
+              border: pw.TableBorder.all(),
               children: [
 
-                pw.Column(
+                // HEADER
+                pw.TableRow(
                   children: [
-                    pw.Text(leftSignature),
-                    pw.SizedBox(height: 20),
-                    pw.Text("____________"),
+                    pw.Text("الرقم"),
+                    pw.Text("الاسم"),
+                    pw.Text("الرتبة"),
+                    ...months.map((m) => pw.Text(m)),
                   ],
                 ),
 
-                pw.Column(
-                  children: [
-                    pw.Text(rightSignature),
-                    pw.SizedBox(height: 20),
-                    pw.Text("____________"),
-                  ],
-                ),
+                // DATA
+                ...data.map((p) {
+
+                  final monthsMap = (p["months"] ?? {}) as Map;
+
+                  return pw.TableRow(
+                    children: [
+                      pw.Text(p["number"] ?? ""),
+                      pw.Text(p["name"] ?? ""),
+                      pw.Text(p["rank"] ?? ""),
+
+                      ...months.map((m) {
+                        final val = monthsMap[m] ?? "-";
+                        return pw.Text(val.toString());
+                      }),
+                    ],
+                  );
+                }),
               ],
             ),
           ];
@@ -136,11 +66,10 @@ class MonthlyComparisonPdf {
       ),
     );
 
-    // 💾 حفظ الملف
     final dir = await getApplicationDocumentsDirectory();
 
     final file = File(
-      "${dir.path}/monthly_comparison_${DateTime.now().millisecondsSinceEpoch}.pdf",
+      "${dir.path}/comparison_${DateTime.now().millisecondsSinceEpoch}.pdf",
     );
 
     await file.writeAsBytes(await pdf.save());

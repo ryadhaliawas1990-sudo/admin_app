@@ -9,7 +9,7 @@ android {
     namespace = "com.example.test_app"
 
     // ✅ تم التعديل هنا
-    compileSdk = 35
+    compileSdk = 36
 
     ndkVersion = flutter.ndkVersion
 

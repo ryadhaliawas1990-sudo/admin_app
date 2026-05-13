@@ -38,7 +38,7 @@ class DBHelper {
   }
 
   // =========================
-  // ➕ إدخال (متوافق مع كل الملفات القديمة)
+  // ➕ إدخال
   // =========================
   static Future<int> insertPerson(Map<String, dynamic> data) async {
     final db = await database;
@@ -81,7 +81,7 @@ class DBHelper {
   }
 
   // =========================
-  // 📊 تقارير (حل خطأ GitHub)
+  // 📊 تقارير
   // =========================
   static Future<List<Map<String, dynamic>>> getReports() async {
     final db = await database;

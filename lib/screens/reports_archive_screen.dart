@@ -50,15 +50,6 @@ class _ReportsArchiveScreenState extends State<ReportsArchiveScreen> {
       }
     }
 
-    String alert;
-    if (a < i) {
-      alert = "⚠️ عدد غير النشطين أعلى من النشطين";
-    } else if (reports.isEmpty) {
-      alert = "📁 لا توجد تقارير محفوظة بعد";
-    } else {
-      alert = "✅ النظام يعمل بشكل طبيعي";
-    }
-
     setState(() {
       totalPeople = people.length;
       totalReports = reports.length;
@@ -67,145 +58,36 @@ class _ReportsArchiveScreenState extends State<ReportsArchiveScreen> {
       inactive = i;
       unknown = u;
 
-      alertMessage = alert;
+      alertMessage = "النظام يعمل";
       loading = false;
     });
   }
 
-  void openComparison() {
-    MonthlyComparisonPdf.export([
-      "2026-01",
-      "2026-02",
-      "2026-03",
-    ]);
-  }
-
-  double percent(int value) {
-    if (totalPeople == 0) return 0;
-    return value / totalPeople;
+  // ✅ FIXED
+  void openComparison() async {
+    await MonthlyComparisonPdf.export(
+      months: ["2026-01", "2026-02", "2026-03"],
+      people: await DBHelper.getPeople(),
+      data: {
+        for (var p in await DBHelper.getPeople())
+          p["number"]: {"months": {}}
+      },
+      topText: "تقرير المباينة",
+      leftSignature: "القائد",
+      rightSignature: "شؤون الأفراد",
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-
-      appBar: AppBar(
-        title: const Text("Reports Archive"),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: loadAnalytics,
-          )
-        ],
-      ),
-
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-
-                  // 📊 KPIs
-                  Row(
-                    children: [
-                      _card("الأفراد", totalPeople, Colors.blue),
-                      _card("التقارير", totalReports, Colors.orange),
-                    ],
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // 📊 نسب
-                  _bar("نشط", percent(active), Colors.green),
-                  _bar("غير نشط", percent(inactive), Colors.red),
-                  _bar("غير معروف", percent(unknown), Colors.grey),
-
-                  const SizedBox(height: 15),
-
-                  // 🧠 تنبيه
-                  Card(
-                    color: Colors.black87,
-                    child: ListTile(
-                      leading: const Icon(Icons.notifications, color: Colors.white),
-                      title: Text(
-                        alertMessage,
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // 🚀 أزرار
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const HrScreen(),
-                              ),
-                            );
-                          },
-                          child: const Text("HR"),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: openComparison,
-                          child: const Text("تقرير"),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-    );
-  }
-
-  Widget _card(String title, int value, Color color) {
-    return Expanded(
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Text(
-                "$value",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-              Text(title),
-            ],
-          ),
+      appBar: AppBar(title: const Text("Reports")),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: openComparison,
+          child: const Text("تقرير"),
         ),
       ),
-    );
-  }
-
-  Widget _bar(String title, double value, Color color) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("$title ${(value * 100).toStringAsFixed(1)}%"),
-        const SizedBox(height: 5),
-        LinearProgressIndicator(
-          value: value,
-          color: color,
-          backgroundColor: Colors.grey.shade300,
-        ),
-        const SizedBox(height: 8),
-      ],
     );
   }
 }

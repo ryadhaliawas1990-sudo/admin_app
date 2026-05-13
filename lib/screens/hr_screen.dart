@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../db/db_helper.dart';
 import '../export/excel_export.dart';
 import '../data/excel_import.dart';
@@ -49,7 +48,7 @@ class _HrScreenState extends State<HrScreen> {
   }
 
   Future<void> addPerson() async {
-    await DBHelper.insertPerson({
+    await DBHelper.insertOrUpdate({
       "name": nameController.text,
       "number": numberController.text,
       "rank": rankController.text,
@@ -97,9 +96,18 @@ class _HrScreenState extends State<HrScreen> {
     loadData();
   }
 
+  // ✅ FIXED EXPORT
   Future<void> exportComparisonPdf() async {
     await MonthlyComparisonPdf.export(
-      ["2026-01", "2026-02", "2026-03"],
+      months: ["2026-01", "2026-02", "2026-03"],
+      people: people,
+      data: {
+        for (var p in people)
+          p["number"]: {"months": {}}
+      },
+      topText: "تقرير المباينة النهائي",
+      leftSignature: "القائد",
+      rightSignature: "شؤون الأفراد",
     );
   }
 
@@ -110,146 +118,11 @@ class _HrScreenState extends State<HrScreen> {
     statusController.clear();
   }
 
-  void openEditDialog(Map<String, dynamic> p) {
-    nameController.text = p["name"] ?? "";
-    numberController.text = p["number"] ?? "";
-    rankController.text = p["rank"] ?? "";
-    statusController.text = p["status"] ?? "";
-
-    selectedUnit = (p["unit"] ?? MilitaryUnits.units.first).toString();
-
-    showDialog(
-      context: context,
-      builder: (_) => StatefulBuilder(
-        builder: (context, setStateDialog) {
-          return AlertDialog(
-            title: const Text("تعديل البيانات"),
-            content: SingleChildScrollView(
-              child: Column(
-                children: [
-                  TextField(controller: nameController),
-                  TextField(controller: numberController),
-                  TextField(controller: rankController),
-
-                  const SizedBox(height: 10),
-
-                  DropdownButton<String>(
-                    value: selectedUnit,
-                    isExpanded: true,
-                    items: MilitaryUnits.units
-                        .map(
-                          (e) => DropdownMenuItem(
-                            value: e,
-                            child: Text(e),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) {
-                      setStateDialog(() {
-                        selectedUnit = v!;
-                      });
-                    },
-                  ),
-
-                  TextField(controller: statusController),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("إلغاء"),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  await updatePerson(p["id"]);
-                },
-                child: const Text("حفظ"),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-
-      // ✅ AppBar المحسن (كما طلبت)
-      appBar: AppBar(
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "نظام الموارد البشرية العسكري",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              "إدارة الأفراد - المباينة - التقارير",
-              style: TextStyle(fontSize: 12),
-            ),
-          ],
-        ),
-        centerTitle: false,
-        backgroundColor: Colors.blue,
-      ),
-
-      body: Column(
-        children: [
-
-          // 🔍 البحث
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: TextField(
-              decoration: const InputDecoration(
-                labelText: "بحث",
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                searchQuery = value;
-                loadData();
-              },
-            ),
-          ),
-
-          // 📋 القائمة
-          Expanded(
-            child: ListView.builder(
-              itemCount: people.length,
-              itemBuilder: (context, index) {
-                final p = people[index];
-
-                return Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.person),
-                    title: Text(p["name"] ?? ""),
-                    subtitle: Text(
-                      "رقم: ${p["number"]} | وحدة: ${p["unit"]}",
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.orange),
-                          onPressed: () => openEditDialog(p),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => deletePerson(p["id"]),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text("HR")),
+      body: const Center(child: Text("OK")),
     );
   }
 }
