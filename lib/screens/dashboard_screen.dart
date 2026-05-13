@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-
-import '../services/comparison_diff_service.dart';
-import '../services/smart_report_service.dart';
+import '../services/military_comparison_engine.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -12,7 +10,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
 
-  Map<String, dynamic>? diff;
+  Map<String, dynamic>? result;
 
   @override
   void initState() {
@@ -22,161 +20,126 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> load() async {
 
-    final monthA = [
-      {"number": "1", "name": "أحمد", "status": "نشط"},
-      {"number": "2", "name": "محمد", "status": "نشط"},
-      {"number": "3", "name": "خالد", "status": "غير نشط"},
+    // 👤 الأشخاص
+    final people = [
+      {"number": "1", "name": "أحمد"},
+      {"number": "2", "name": "محمد"},
+      {"number": "3", "name": "خالد"},
     ];
 
-    final monthB = [
-      {"number": "1", "name": "أحمد", "status": "نشط"},
-      {"number": "2", "name": "محمد", "status": "غير نشط"},
-      {"number": "4", "name": "سالم", "status": "نشط"},
-    ];
+    // 📅 الأشهر
+    final months = ["2026-01", "2026-02"];
 
-    final result = ComparisonDiffService.compareTwoMonths(
-      monthA: monthA,
-      monthB: monthB,
+    // 📊 بيانات الأشهر (الحالة من Excel لاحقًا)
+    final dataByMonth = {
+      "2026-01": [
+        {"number": "1", "status": "نشط"},
+        {"number": "2", "status": "نشط"},
+      ],
+      "2026-02": [
+        {"number": "1", "status": "غير نشط"},
+        {"number": "3", "status": "نشط"},
+      ],
+    };
+
+    final res = MilitaryComparisonEngine.compare(
+      people: people,
+      months: months,
+      dataByMonth: dataByMonth,
     );
 
     setState(() {
-      diff = result;
+      result = res;
     });
-  }
-
-  Widget card(String title, int value, Color color, IconData icon) {
-    return Expanded(
-      child: Card(
-        elevation: 4,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Icon(icon, color: color, size: 30),
-              const SizedBox(height: 8),
-              Text(
-                "$value",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-              Text(title),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
 
-    final summary = diff?["summary"] ?? {};
+    final summary = result?["summary"] ?? {};
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("لوحة القيادة العسكرية"),
+        title: const Text("لوحة المباينة"),
         backgroundColor: Colors.blue,
       ),
 
-      body: diff == null
+      body: result == null
           ? const Center(child: CircularProgressIndicator())
           : Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
 
-                  // 📊 الإحصائيات
-                  Row(
-                    children: [
-                      card(
-                        "جدد",
-                        summary["newCount"] ?? 0,
-                        Colors.green,
-                        Icons.person_add,
-                      ),
-                      card(
-                        "غائبين",
-                        summary["missingCount"] ?? 0,
-                        Colors.red,
-                        Icons.person_off,
-                      ),
-                    ],
+                  Text(
+                    "تصميم رياض عواس",
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
 
                   const SizedBox(height: 10),
 
+                  // 📊 إحصائيات
                   Row(
                     children: [
-                      card(
-                        "متغيرين",
-                        summary["changedCount"] ?? 0,
-                        Colors.orange,
-                        Icons.swap_horiz,
-                      ),
-                      card(
-                        "ثابتين",
-                        summary["stableCount"] ?? 0,
-                        Colors.blue,
-                        Icons.check_circle,
-                      ),
+                      _card("جدد", summary["newCount"] ?? 0, Colors.green),
+                      _card("غائبين", summary["missingCount"] ?? 0, Colors.red),
+                    ],
+                  ),
+
+                  Row(
+                    children: [
+                      _card("متغيرين", summary["changedCount"] ?? 0, Colors.orange),
+                      _card("ثابتين", summary["stableCount"] ?? 0, Colors.blue),
                     ],
                   ),
 
                   const SizedBox(height: 20),
-
-                  const Divider(),
 
                   const Text(
-                    "ملخص الحالة العامة",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    "نتيجة المباينة",
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
 
                   const SizedBox(height: 10),
 
-                  Text(
-                    (summary["missingCount"] ?? 0) > 0
-                        ? "⚠️ يوجد تغيّر غير طبيعي في الأفراد"
-                        : "✅ الوضع مستقر",
-                    style: const TextStyle(fontSize: 16),
-                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: result!["result"].length,
+                      itemBuilder: (context, index) {
 
-                  const SizedBox(height: 20),
+                        final item = result!["result"][index];
+                        final monthsMap = item["months"];
 
-                  // 🧠 زر التقرير الذكي
-                  ElevatedButton(
-                    onPressed: () {
-                      if (diff == null) return;
-
-                      final text =
-                          SmartReportService.generateReport(diff!);
-
-                      showDialog(
-                        context: context,
-                        builder: (_) => AlertDialog(
-                          title: const Text("التقرير الذكي"),
-                          content: SingleChildScrollView(
-                            child: Text(text),
+                        return Card(
+                          child: ListTile(
+                            title: Text(item["name"]),
+                            subtitle: Text(item["number"]),
+                            trailing: Text(monthsMap.toString()),
                           ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text("إغلاق"),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    child: const Text("إنشاء تقرير ذكي"),
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _card(String title, int value, Color color) {
+    return Expanded(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              Text("$value", style: TextStyle(color: color, fontSize: 20)),
+              Text(title),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

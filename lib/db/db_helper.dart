@@ -10,7 +10,6 @@ class DBHelper {
   // =========================
   static Future<Database> get database async {
     if (_db != null) return _db!;
-
     _db = await _initDB();
     return _db!;
   }
@@ -34,12 +33,29 @@ class DBHelper {
             month TEXT
           )
         ''');
+
+        // 🔥 تحسين الأداء (مهم للمباينة)
+        await db.execute('CREATE INDEX idx_month ON people(month)');
+        await db.execute('CREATE INDEX idx_number ON people(number)');
       },
     );
   }
 
   // =========================
-  // 👤 جلب كل الأشخاص
+  // ➕ إدخال أو تحديث (مهم جدًا)
+  // =========================
+  static Future<void> insertOrUpdate(Map<String, dynamic> data) async {
+    final db = await database;
+
+    await db.insert(
+      'people',
+      data,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  // =========================
+  // 👤 جلب كل البيانات
   // =========================
   static Future<List<Map<String, dynamic>>> getPeople() async {
     final db = await database;
@@ -47,7 +63,7 @@ class DBHelper {
   }
 
   // =========================
-  // 📅 جلب حسب الشهر (المباينة)
+  // 📅 جلب حسب الشهر
   // =========================
   static Future<List<Map<String, dynamic>>> getByMonth(String month) async {
     final db = await database;
@@ -56,41 +72,6 @@ class DBHelper {
       'people',
       where: 'month = ?',
       whereArgs: [month],
-    );
-  }
-
-  // =========================
-  // ➕ إدخال شخص
-  // =========================
-  static Future<int> insertPerson(Map<String, dynamic> data) async {
-    final db = await database;
-    return await db.insert('people', data);
-  }
-
-  // =========================
-  // ✏️ تحديث شخص
-  // =========================
-  static Future<int> updatePerson(int id, Map<String, dynamic> data) async {
-    final db = await database;
-
-    return await db.update(
-      'people',
-      data,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
-
-  // =========================
-  // ❌ حذف شخص
-  // =========================
-  static Future<int> deletePerson(int id) async {
-    final db = await database;
-
-    return await db.delete(
-      'people',
-      where: 'id = ?',
-      whereArgs: [id],
     );
   }
 
@@ -108,17 +89,15 @@ class DBHelper {
   }
 
   // =========================
-  // 📊 جلب التقارير (اختياري للتوسع لاحقاً)
+  // ❌ حذف
   // =========================
-  static Future<List<Map<String, dynamic>>> getReports() async {
+  static Future<int> deletePerson(int id) async {
     final db = await database;
-    return await db.query('people'); // مؤقتاً نفس الجدول
-  }
 
-  // =========================
-  // 🧾 سجل العمليات (اختياري)
-  // =========================
-  static Future<List<Map<String, dynamic>>> getLogs() async {
-    return [];
+    return await db.delete(
+      'people',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 }

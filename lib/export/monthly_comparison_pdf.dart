@@ -3,135 +3,145 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 
-import '../db/db_helper.dart';
-
 class MonthlyComparisonPdf {
 
-  static Future<String> export(
-    List<String> months, {
-    List<String>? numbers,
+  static Future<String> export({
+    required List<String> months,
+    required List<Map<String, dynamic>> people,
+    required Map<String, dynamic> data,
+    required String topText,
+    required String leftSignature,
+    required String rightSignature,
   }) async {
 
     final pdf = pw.Document();
 
-    Map<String, List<Map<String, dynamic>>> dataByMonth = {};
+    // 📌 تحديد الاتجاه حسب عدد الأشهر
+    final bool isLandscape = months.length > 5;
 
-    for (String month in months) {
-      final data = await DBHelper.getByMonth(month);
-      dataByMonth[month] = data;
-    }
-
-    Map<String, Map<String, dynamic>> peopleMap = {};
-
-    for (var month in months) {
-      final list = dataByMonth[month] ?? [];
-
-      for (var p in list) {
-        final num = p['number']?.toString();
-
-        if (num == null) continue;
-        if (numbers != null && !numbers.contains(num)) continue;
-
-        peopleMap[num] = p;
-      }
-    }
+    final PdfPageFormat pageFormat =
+        isLandscape ? PdfPageFormat.a4.landscape : PdfPageFormat.a4;
 
     pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4.landscape,
+      pw.MultiPage(
+        pageFormat: pageFormat,
         build: (context) {
 
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
+          return [
 
-              pw.Text(
-                '📊 تقرير المباينة',
-                style: pw.TextStyle(
-                  fontSize: 20,
-                  fontWeight: pw.FontWeight.bold,
+            // 🟢 العنوان العلوي
+            pw.Text(
+              topText,
+              style: pw.TextStyle(
+                fontSize: 14,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+
+            pw.SizedBox(height: 10),
+
+            // 👤 بيانات الأشخاص
+            ...people.map((p) {
+
+              final number = p["number"]?.toString() ?? "";
+
+              return pw.Container(
+                margin: const pw.EdgeInsets.only(bottom: 10),
+                padding: const pw.EdgeInsets.all(8),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(),
                 ),
-              ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
 
-              pw.SizedBox(height: 15),
-
-              pw.Table(
-                border: pw.TableBorder.all(),
-
-                children: [
-
-                  // HEADER
-                  pw.TableRow(
-                    decoration: pw.BoxDecoration(
-                      color: PdfColors.grey300,
+                    pw.Text("الرتبة: ${p["rank"] ?? "-"}"),
+                    pw.Text("الرقم: $number"),
+                    pw.Text(
+                      "الاسم: ${p["name"] ?? "-"}",
+                      style: pw.TextStyle(
+                        fontSize: 12,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
                     ),
-                    children: [
-                      pw.Text("الرقم"),
-                      pw.Text("الرتبة"),
-                      pw.Text("الاسم"),
-                      pw.Text("الوحدة"),
-                      ...months.map((m) => pw.Text(m)),
-                      pw.Text("النسبة"),
-                    ],
-                  ),
 
-                  // ROWS
-                  ...peopleMap.values.map((p) {
+                    pw.SizedBox(height: 8),
 
-                    int present = 0;
+                    // 📊 الجدول
+                    pw.Table(
+                      border: pw.TableBorder.all(),
+                      children: [
 
-                    final row = <pw.Widget>[
-                      pw.Text(p['number']?.toString() ?? ''),
-                      pw.Text(p['rank'] ?? ''),
-                      pw.Text(p['name'] ?? ''),
-                      pw.Text(p['unit'] ?? ''),
-                    ];
-
-                    for (var month in months) {
-
-                      final list = dataByMonth[month] ?? [];
-
-                      final exists = list.any(
-                        (e) => e['number']?.toString() ==
-                            p['number']?.toString(),
-                      );
-
-                      if (exists) present++;
-
-                      row.add(
-                        pw.Container(
-                          padding: const pw.EdgeInsets.all(4),
-                          color: exists
-                              ? PdfColors.green100
-                              : PdfColors.red100,
-                          child: pw.Text(exists ? "✔" : "✖"),
+                        // العناوين (الأشهر)
+                        pw.TableRow(
+                          children: months.map((m) {
+                            return pw.Padding(
+                              padding: const pw.EdgeInsets.all(5),
+                              child: pw.Text(
+                                m,
+                                style: pw.TextStyle(fontSize: 10),
+                              ),
+                            );
+                          }).toList(),
                         ),
-                      );
-                    }
 
-                    final percent = months.isEmpty
-                        ? 0
-                        : ((present / months.length) * 100).toInt();
+                        // الصف (الحالات)
+                        pw.TableRow(
+                          children: months.map((m) {
 
-                    row.add(pw.Text("$percent%"));
+                            final status = data[number]?["months"]?[m] ?? "-";
 
-                    return pw.TableRow(children: row);
-                  }).toList(),
-                ],
-              ),
-            ],
-          );
+                            return pw.Padding(
+                              padding: const pw.EdgeInsets.all(5),
+                              child: pw.Text(
+                                status,
+                                style: pw.TextStyle(fontSize: 10),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+
+            pw.SizedBox(height: 30),
+
+            // ✍️ التواقيع
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+
+                pw.Column(
+                  children: [
+                    pw.Text(leftSignature),
+                    pw.SizedBox(height: 20),
+                    pw.Text("____________"),
+                  ],
+                ),
+
+                pw.Column(
+                  children: [
+                    pw.Text(rightSignature),
+                    pw.SizedBox(height: 20),
+                    pw.Text("____________"),
+                  ],
+                ),
+              ],
+            ),
+          ];
         },
       ),
     );
 
-    // SAVE FILE
+    // 💾 حفظ الملف
     final dir = await getApplicationDocumentsDirectory();
 
-    final fileName =
-        "mubayana_${months.join('_')}_${DateTime.now().millisecondsSinceEpoch}.pdf";
-
-    final file = File("${dir.path}/$fileName");
+    final file = File(
+      "${dir.path}/monthly_comparison_${DateTime.now().millisecondsSinceEpoch}.pdf",
+    );
 
     await file.writeAsBytes(await pdf.save());
 

@@ -8,7 +8,8 @@ android {
 
     namespace = "com.example.test_app"
 
-    compileSdk = 34
+    // ✅ تم التعديل هنا
+    compileSdk = 35
 
     ndkVersion = flutter.ndkVersion
 
@@ -16,8 +17,10 @@ android {
 
         applicationId = "com.example.test_app"
 
-        minSdk = 21
-        targetSdk = 34
+        minSdk = flutter.minSdkVersion
+
+        // ✅ تم التعديل هنا
+        targetSdk = 35
 
         versionCode = 1
         versionName = "1.0"

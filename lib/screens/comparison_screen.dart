@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../services/comparison_service.dart';
-import '../export/comparison_pdf.dart';
-import '../export/comparison_excel.dart';
+import '../services/monthly_comparison_service.dart';
+import '../export/monthly_comparison_pdf.dart';
 
 class ComparisonScreen extends StatefulWidget {
   const ComparisonScreen({super.key});
@@ -35,7 +34,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
   }
 
   // =========================
-  // 📊 تحميل المباينة
+  // 📊 تحميل المباينة من DB الحقيقي
   // =========================
   Future<void> load() async {
     setState(() => loading = true);
@@ -51,37 +50,57 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
 
     selectedMonths = months.sublist(start, end + 1);
 
-    final data =
-        await ComparisonService.buildComparison(selectedMonths);
+    final data = await MonthlyComparisonService.build(
+      months: selectedMonths,
+    );
 
     setState(() {
-      result = data;
+      result = List<Map<String, dynamic>>.from(data["people"]);
       loading = false;
     });
   }
 
   // =========================
-  // 📈 النسبة
+  // 📈 حساب النسبة
   // =========================
   double calcPercent(Map<String, dynamic> person) {
-    final monthsMap = person["months"] as Map<String, bool>;
+    final monthsMap = person["months"] as Map<String, dynamic>;
 
     if (monthsMap.isEmpty) return 0;
 
     int total = monthsMap.length;
-    int present =
-        monthsMap.values.where((v) => v == true).length;
+    int present = monthsMap.values.where((v) => v == "نشط" || v == true).length;
 
     return present / total;
   }
 
   // =========================
-  // 📤 PDF
+  // 📤 PDF (الربط النهائي)
   // =========================
   Future<void> exportPdf() async {
-    final path = await ComparisonPdf.export(
+
+    final data = await MonthlyComparisonService.build(
       months: selectedMonths,
-      data: result,
+    );
+
+    final people = List<Map<String, dynamic>>.from(data["people"]);
+    final monthsList = List<String>.from(data["months"]);
+
+    final pdfData = <String, dynamic>{};
+
+    for (var p in people) {
+      pdfData[p["number"]] = {
+        "months": p["months"]
+      };
+    }
+
+    final path = await MonthlyComparisonPdf.export(
+      months: monthsList,
+      people: people,
+      data: pdfData,
+      topText: "تقرير المباينة النهائي",
+      leftSignature: "القائد",
+      rightSignature: "شؤون الأفراد",
     );
 
     if (!mounted) return;
@@ -92,18 +111,11 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
   }
 
   // =========================
-  // 📤 Excel
+  // 📤 Excel (لاحقاً)
   // =========================
   Future<void> exportExcel() async {
-    final path = await ComparisonExcel.export(
-      months: selectedMonths,
-      data: result,
-    );
-
-    if (!mounted) return;
-
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("تم حفظ Excel: $path")),
+      const SnackBar(content: Text("Excel سيتم ربطه لاحقاً")),
     );
   }
 
@@ -217,7 +229,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                         rows: result.map((p) {
 
                           final monthsMap =
-                              p["months"] as Map<String, bool>;
+                              p["months"] as Map<String, dynamic>;
 
                           return DataRow(
                             cells: [
@@ -227,7 +239,8 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                               DataCell(Text(p["rank"] ?? "")),
 
                               ...selectedMonths.map((m) {
-                                final ok = monthsMap[m] ?? false;
+                                final value = monthsMap[m];
+                                final ok = value == "نشط" || value == true;
 
                                 return DataCell(
                                   Text(
