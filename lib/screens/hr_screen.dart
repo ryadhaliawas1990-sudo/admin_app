@@ -20,7 +20,7 @@ class _HrScreenState extends State<HrScreen> {
   }
 
   Future<void> loadData() async {
-    final data = await DBHelper.getAllTimeline():
+    final data = await DBHelper.getAllTimeline();
 
     if (!mounted) return;
 
