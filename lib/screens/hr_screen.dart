@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../features/excel_compare/compare_two_files.dart';
 import '../db/db_helper.dart';
+import 'person_timeline_screen.dart';
 
 class HrScreen extends StatefulWidget {
   const HrScreen({super.key});
@@ -11,21 +11,21 @@ class HrScreen extends StatefulWidget {
 
 class _HrScreenState extends State<HrScreen> {
 
-  List<Map<String, dynamic>> people = [];
+  List<Map<String, dynamic>> data = [];
 
   @override
   void initState() {
     super.initState();
-    loadData();
+    load();
   }
 
-  Future<void> loadData() async {
-    final data = await DBHelper.getAllTimeline();
+  Future<void> load() async {
+    await DBHelper.insertTestData(); // للتجربة فقط
 
-    if (!mounted) return;
+    final result = await DBHelper.getAllTimeline();
 
     setState(() {
-      people = data;
+      data = result;
     });
   }
 
@@ -33,61 +33,31 @@ class _HrScreenState extends State<HrScreen> {
   Widget build(BuildContext context) {
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("HR System"),
-      ),
+      appBar: AppBar(title: const Text("الأفراد")),
 
-      body: Column(
-        children: [
+      body: ListView.builder(
+        itemCount: data.length,
+        itemBuilder: (context, index) {
 
-          const SizedBox(height: 20),
+          final item = data[index];
 
-          // =========================
-          // زر المقارنة
-          // =========================
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
+          return ListTile(
+            title: Text(item['name'] ?? ''),
+            subtitle: Text(item['number'] ?? ''),
+            onTap: () {
 
-                  await CompareTwoFiles.run(context);
-
-                  if (!mounted) return;
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('تم تشغيل المقارنة بنجاح'),
-                    ),
-                  );
-                },
-                child: const Text("تشغيل مقارنة ملفين Excel"),
-              ),
-            ),
-          ),
-
-          const Divider(),
-
-          // =========================
-          // عرض البيانات (اختياري)
-          // =========================
-          Expanded(
-            child: ListView.builder(
-              itemCount: people.length,
-              itemBuilder: (context, index) {
-
-                final p = people[index];
-
-                return ListTile(
-                  leading: const Icon(Icons.person),
-                  title: Text(p["name"] ?? ""),
-                  subtitle: Text("رقم: ${p["number"] ?? ""}"),
-                );
-              },
-            ),
-          ),
-        ],
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PersonTimelineScreen(
+                    number: item['number'],
+                    name: item['name'],
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }

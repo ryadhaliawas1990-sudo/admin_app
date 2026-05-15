@@ -5,9 +5,6 @@ class DBHelper {
 
   static Database? _db;
 
-  // =========================
-  // فتح قاعدة البيانات
-  // =========================
   static Future<Database> get database async {
     if (_db != null) return _db!;
     _db = await _initDB();
@@ -39,31 +36,62 @@ class DBHelper {
     );
   }
 
-  // =========================
   // إدخال سجل
-  // =========================
   static Future<int> insertTimeline(Map<String, dynamic> data) async {
     final db = await database;
-    return await db.insert('timeline', data);
+    return db.insert('timeline', data);
   }
 
-  // =========================
   // جلب كل البيانات
-  // =========================
   static Future<List<Map<String, dynamic>>> getAllTimeline() async {
     final db = await database;
-    return await db.query('timeline');
+    return db.query('timeline');
   }
 
-  // =========================
-  // جلب فرد واحد عبر الرقم
-  // =========================
+  // جلب سجل فرد
   static Future<List<Map<String, dynamic>>> getPersonTimeline(String number) async {
     final db = await database;
-    return await db.query(
+
+    return db.query(
       'timeline',
       where: 'number = ?',
       whereArgs: [number],
+      orderBy: 'year ASC, month ASC',
     );
+  }
+
+  // بيانات تجريبية جاهزة
+  static Future<void> insertTestData() async {
+    final db = await database;
+
+    await db.insert('timeline', {
+      'number': '1001',
+      'name': 'محمد علي',
+      'rank': 'رقيب',
+      'unit': 'الوحدة 1',
+      'status': 'نشط',
+      'month': '1',
+      'year': '2025',
+    });
+
+    await db.insert('timeline', {
+      'number': '1001',
+      'name': 'محمد علي',
+      'rank': 'رقيب',
+      'unit': 'الوحدة 1',
+      'status': 'إجازة',
+      'month': '2',
+      'year': '2025',
+    });
+
+    await db.insert('timeline', {
+      'number': '1002',
+      'name': 'أحمد حسن',
+      'rank': 'جندي',
+      'unit': 'الوحدة 2',
+      'status': 'نشط',
+      'month': '1',
+      'year': '2025',
+    });
   }
 }
