@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import '../db/db_helper.dart';
+import 'import_screen.dart';
 import 'person_timeline_screen.dart';
 
 class HrScreen extends StatefulWidget {
@@ -11,21 +13,21 @@ class HrScreen extends StatefulWidget {
 
 class _HrScreenState extends State<HrScreen> {
 
-  List<Map<String, dynamic>> data = [];
+  List<Map<String, dynamic>> people = [];
 
   @override
   void initState() {
     super.initState();
-    load();
+
+    loadData();
   }
 
-  Future<void> load() async {
-    await DBHelper.insertTestData(); // للتجربة فقط
+  Future<void> loadData() async {
 
-    final result = await DBHelper.getAllTimeline();
+    final data = await DBHelper.getAllTimeline();
 
     setState(() {
-      data = result;
+      people = data;
     });
   }
 
@@ -33,32 +35,77 @@ class _HrScreenState extends State<HrScreen> {
   Widget build(BuildContext context) {
 
     return Scaffold(
-      appBar: AppBar(title: const Text("الأفراد")),
 
-      body: ListView.builder(
-        itemCount: data.length,
-        itemBuilder: (context, index) {
+      appBar: AppBar(
+        title: const Text('سجل الحالة'),
 
-          final item = data[index];
+        actions: [
 
-          return ListTile(
-            title: Text(item['name'] ?? ''),
-            subtitle: Text(item['number'] ?? ''),
-            onTap: () {
+          IconButton(
+            icon: const Icon(Icons.upload_file),
 
-              Navigator.push(
+            onPressed: () async {
+
+              await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => PersonTimelineScreen(
-                    number: item['number'],
-                    name: item['name'],
-                  ),
+                  builder: (_) => const ImportScreen(),
                 ),
               );
+
+              // تحديث بعد الاستيراد
+              loadData();
             },
-          );
-        },
+          ),
+        ],
       ),
+
+      body: people.isEmpty
+
+          ? const Center(
+              child: Text('لا توجد بيانات'),
+            )
+
+          : ListView.builder(
+
+              itemCount: people.length,
+
+              itemBuilder: (context, index) {
+
+                final item = people[index];
+
+                return Card(
+
+                  child: ListTile(
+
+                    title: Text(
+                      item['name'] ?? '',
+                    ),
+
+                    subtitle: Text(
+                      'الرقم: ${item['number']}',
+                    ),
+
+                    trailing: Text(
+                      item['rank'] ?? '',
+                    ),
+
+                    onTap: () {
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PersonTimelineScreen(
+                            number: item['number'] ?? '',
+                            name: item['name'] ?? '',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
     );
   }
 }
