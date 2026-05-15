@@ -10,6 +10,9 @@ class CompareTwoFiles {
 
   static Future<String?> run() async {
 
+    // =========================
+    // اختيار الملف القديم
+    // =========================
     final oldFile = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['xlsx'],
@@ -17,6 +20,9 @@ class CompareTwoFiles {
 
     if (oldFile == null) return null;
 
+    // =========================
+    // اختيار الملف الجديد
+    // =========================
     final newFile = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['xlsx'],
@@ -44,9 +50,9 @@ class CompareTwoFiles {
     List<Map<String, dynamic>> added = [];
     List<Map<String, dynamic>> missing = [];
 
-    // ==============================
-    // 1️⃣ القديم
-    // ==============================
+    // =========================
+    // مقارنة الملف القديم
+    // =========================
     for (var old in oldData) {
 
       String oldNumber = (old['الرقم'] ?? '').toString();
@@ -55,7 +61,7 @@ class CompareTwoFiles {
 
       Map<String, dynamic>? found;
 
-      // 🔹 رقم
+      // 🔹 مطابقة بالرقم
       for (var n in newData) {
 
         if ((n['الرقم'] ?? '').toString() == oldNumber &&
@@ -67,7 +73,7 @@ class CompareTwoFiles {
         }
       }
 
-      // 🔹 اسم
+      // 🔹 مطابقة بالاسم
       if (found == null) {
 
         for (var n in newData) {
@@ -85,12 +91,12 @@ class CompareTwoFiles {
         }
       }
 
-      // ==============================
-      // النتيجة
-      // ==============================
+      // =========================
+      // تحليل النتيجة
+      // =========================
       if (found != null) {
 
-        final newStatus = (found['الحالة'] ?? '').toString();
+        String newStatus = (found['الحالة'] ?? '').toString();
 
         if (oldStatus != newStatus) {
 
@@ -111,9 +117,9 @@ class CompareTwoFiles {
       }
     }
 
-    // ==============================
-    // 2️⃣ الجديد
-    // ==============================
+    // =========================
+    // العناصر الجديدة
+    // =========================
     for (var n in newData) {
 
       if (!usedNew.contains(n)) {
@@ -125,47 +131,50 @@ class CompareTwoFiles {
       }
     }
 
-    // ==============================
-    // 3️⃣ ملف النتيجة
-    // ==============================
+    // =========================
+    // إنشاء ملف النتيجة
+    // =========================
     final excel = Excel.createExcel();
     final sheet = excel['Result'];
 
     sheet.appendRow([
-      'الرقم',
-      'الاسم',
-      'الحالة القديمة',
-      'الحالة الجديدة',
-      'النتيجة',
+      TextCellValue('الرقم'),
+      TextCellValue('الاسم'),
+      TextCellValue('الحالة القديمة'),
+      TextCellValue('الحالة الجديدة'),
+      TextCellValue('النتيجة'),
     ]);
 
     for (var c in changed) {
+
       sheet.appendRow([
-        c['number'],
-        c['name'],
-        c['old'],
-        c['new'],
-        'تغير',
+        TextCellValue(c['number'] ?? ''),
+        TextCellValue(c['name'] ?? ''),
+        TextCellValue(c['old'] ?? ''),
+        TextCellValue(c['new'] ?? ''),
+        TextCellValue('تغير'),
       ]);
     }
 
     for (var m in missing) {
+
       sheet.appendRow([
-        m['number'],
-        m['name'],
-        '',
-        '',
-        'مفقود',
+        TextCellValue(m['number'] ?? ''),
+        TextCellValue(m['name'] ?? ''),
+        TextCellValue(''),
+        TextCellValue(''),
+        TextCellValue('مفقود'),
       ]);
     }
 
     for (var a in added) {
+
       sheet.appendRow([
-        a['number'],
-        a['name'],
-        '',
-        '',
-        'جديد',
+        TextCellValue(a['number'] ?? ''),
+        TextCellValue(a['name'] ?? ''),
+        TextCellValue(''),
+        TextCellValue(''),
+        TextCellValue('جديد'),
       ]);
     }
 
