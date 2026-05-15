@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-
 import '../features/excel_compare/compare_two_files.dart';
+import '../db/db_helper.dart';
 
 class HrScreen extends StatefulWidget {
   const HrScreen({super.key});
@@ -11,65 +11,83 @@ class HrScreen extends StatefulWidget {
 
 class _HrScreenState extends State<HrScreen> {
 
-  String resultMessage = '';
+  List<Map<String, dynamic>> people = [];
 
-  bool loading = false;
+  @override
+  void initState() {
+    super.initState();
+    loadData();
+  }
+
+  Future<void> loadData() async {
+    final data = await DBHelper.getPeople();
+
+    if (!mounted) return;
+
+    setState(() {
+      people = data;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
 
     return Scaffold(
-
       appBar: AppBar(
-        title: const Text('HR Screen'),
+        title: const Text("HR System"),
       ),
 
-      body: Padding(
+      body: Column(
+        children: [
 
-        padding: const EdgeInsets.all(16),
+          const SizedBox(height: 20),
 
-        child: Column(
+          // =========================
+          // زر المقارنة
+          // =========================
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
 
-          children: [
+                  await CompareTwoFiles.run(context);
 
-            ElevatedButton(
-              onPressed: loading
-                  ? null
-                  : () async {
+                  if (!mounted) return;
 
-                      setState(() {
-                        loading = true;
-                        resultMessage = '';
-                      });
-
-                      final result =
-                          await CompareTwoFiles.run(context);
-
-                      setState(() {
-                        loading = false;
-
-                        if (result == null) {
-                          resultMessage = 'تم إلغاء العملية';
-                        } else {
-                          resultMessage =
-                              'تم حفظ الملف:\n$result';
-                        }
-                      });
-                    },
-
-              child: loading
-                  ? const CircularProgressIndicator()
-                  : const Text('مقارنة ملفين Excel'),
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('تم تشغيل المقارنة بنجاح'),
+                    ),
+                  );
+                },
+                child: const Text("تشغيل مقارنة ملفين Excel"),
+              ),
             ),
+          ),
 
-            const SizedBox(height: 20),
+          const Divider(),
 
-            Text(
-              resultMessage,
-              textAlign: TextAlign.center,
+          // =========================
+          // عرض البيانات (اختياري)
+          // =========================
+          Expanded(
+            child: ListView.builder(
+              itemCount: people.length,
+              itemBuilder: (context, index) {
+
+                final p = people[index];
+
+                return ListTile(
+                  leading: const Icon(Icons.person),
+                  title: Text(p["name"] ?? ""),
+                  subtitle: Text("رقم: ${p["number"] ?? ""}"),
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
