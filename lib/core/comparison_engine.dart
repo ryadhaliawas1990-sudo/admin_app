@@ -2,7 +2,6 @@ import '../db/db_helper.dart';
 
 class ComparisonEngine {
 
-  // مقارنة شهرين
   static Future<Map<String, dynamic>> compareMonths(
     String oldMonth,
     String newMonth,
@@ -14,31 +13,36 @@ class ComparisonEngine {
     final newRecords =
         await DBHelper.getMonthlyRecords(newMonth);
 
-    // تحويل البيانات إلى خرائط
-    final oldMap = {
+    final Map<String, Map<String, dynamic>>
+        oldMap = {
+
       for (var item in oldRecords)
-        item['number']: item
+        item['number'].toString(): item,
     };
 
-    final newMap = {
+    final Map<String, Map<String, dynamic>>
+        newMap = {
+
       for (var item in newRecords)
-        item['number']: item
+        item['number'].toString(): item,
     };
 
     List<Map<String, dynamic>> changed = [];
+
     List<Map<String, dynamic>> disappeared = [];
+
     List<Map<String, dynamic>> added = [];
 
-    // البحث عن التغييرات
+    // التغييرات والمختفين
     for (var number in oldMap.keys) {
 
       if (newMap.containsKey(number)) {
 
         final oldStatus =
-            oldMap[number]['status'];
+            oldMap[number]!['status'];
 
         final newStatus =
-            newMap[number]['status'];
+            newMap[number]!['status'];
 
         if (oldStatus != newStatus) {
 
@@ -61,7 +65,7 @@ class ComparisonEngine {
       }
     }
 
-    // البحث عن الجدد
+    // الجدد
     for (var number in newMap.keys) {
 
       if (!oldMap.containsKey(number)) {

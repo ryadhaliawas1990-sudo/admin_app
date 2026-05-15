@@ -23,63 +23,84 @@ class ComparisonExcelExport {
     final sheet = excel['Comparison'];
 
     // العناوين
-    sheet.appendRow([
-      'الرقم العسكري',
-      'الحالة السابقة',
-      'الحالة الجديدة',
-      'النوع',
-    ]);
+    sheet.cell(CellIndex.indexByString("A1"))
+        .value = TextCellValue('الرقم العسكري');
+
+    sheet.cell(CellIndex.indexByString("B1"))
+        .value = TextCellValue('الحالة السابقة');
+
+    sheet.cell(CellIndex.indexByString("C1"))
+        .value = TextCellValue('الحالة الجديدة');
+
+    sheet.cell(CellIndex.indexByString("D1"))
+        .value = TextCellValue('النوع');
+
+    int row = 2;
 
     // المتغيرين
     for (var item in result['changed']) {
 
-      sheet.appendRow([
+      sheet.cell(
+        CellIndex.indexByString("A$row"),
+      ).value = TextCellValue(
+        item['number'].toString(),
+      );
 
-        item['number'],
+      sheet.cell(
+        CellIndex.indexByString("B$row"),
+      ).value = TextCellValue(
+        item['old_status'].toString(),
+      );
 
-        item['old_status'],
+      sheet.cell(
+        CellIndex.indexByString("C$row"),
+      ).value = TextCellValue(
+        item['new_status'].toString(),
+      );
 
-        item['new_status'],
+      sheet.cell(
+        CellIndex.indexByString("D$row"),
+      ).value = TextCellValue('متغير');
 
-        'متغير',
-      ]);
+      row++;
     }
 
     // المختفين
     for (var item in result['disappeared']) {
 
-      sheet.appendRow([
+      sheet.cell(
+        CellIndex.indexByString("A$row"),
+      ).value = TextCellValue(
+        item['number'].toString(),
+      );
 
-        item['number'],
+      sheet.cell(
+        CellIndex.indexByString("D$row"),
+      ).value = TextCellValue('مختفي');
 
-        '',
-
-        '',
-
-        'مختفي',
-      ]);
+      row++;
     }
 
     // الجدد
     for (var item in result['added']) {
 
-      sheet.appendRow([
+      sheet.cell(
+        CellIndex.indexByString("A$row"),
+      ).value = TextCellValue(
+        item['number'].toString(),
+      );
 
-        item['number'],
+      sheet.cell(
+        CellIndex.indexByString("D$row"),
+      ).value = TextCellValue('جديد');
 
-        '',
-
-        '',
-
-        'جديد',
-      ]);
+      row++;
     }
 
     final dir =
         await getApplicationDocumentsDirectory();
 
     final file = File(
-
       '${dir.path}/comparison.xlsx',
     );
 
