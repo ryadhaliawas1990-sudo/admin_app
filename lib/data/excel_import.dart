@@ -1,55 +1,88 @@
 import 'dart:io';
-import 'dart:typed_data';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../db/db_helper.dart';
 
 class ExcelImport {
 
-  /// 📥 اختيار ملف من الجهاز + استيراد مباشر
-  static Future<void> pickAndImport(String month) async {
+  static Future<void> pickAndImport(
+    String month,
+  ) async {
 
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['xlsx'],
     );
 
-    if (result == null) return;
-
-    Uint8List bytes;
-
-    if (result.files.single.bytes != null) {
-      bytes = result.files.single.bytes!;
-    } else {
-      bytes = await File(result.files.single.path!).readAsBytes();
+    if (result == null) {
+      return;
     }
 
-    await _importExcel(bytes, month);
-  }
+    final file = File(
+      result.files.single.path!,
+    );
 
-  /// 📊 قراءة Excel وحفظه في قاعدة البيانات
-  static Future<void> _importExcel(Uint8List bytes, String month) async {
+    final bytes = file.readAsBytesSync();
 
     final excel = Excel.decodeBytes(bytes);
 
-    for (var sheetName in excel.tables.keys) {
+    for (var table in excel.tables.keys) {
 
-      final sheet = excel.tables[sheetName];
-      if (sheet == null) continue;
+      final sheet = excel.tables[table];
 
-      final rows = sheet.rows;
+      if (sheet == null) {
+        continue;
+      }
 
-      for (var row in rows.skip(1)) {
+      // يبدأ من السطر الثاني
+      for (int i = 1; i < sheet.rows.length; i++) {
 
+        final row = sheet.rows[i];
+
+        // ترتيب أعمدتك الحقيقي
+
+        final number =
+            row[1]?.value.toString() ?? '';
+
+        final rank =
+            row[2]?.value.toString() ?? '';
+
+        final name =
+            row[3]?.value.toString() ?? '';
+
+        final unit =
+            row[4]?.value.toString() ?? '';
+
+        final status =
+            row[5]?.value.toString() ?? '';
+
+        // تجاهل الصف الفارغ
+        if (number.trim().isEmpty) {
+          continue;
+        }
+
+        // حفظ الشخص
         await DBHelper.insertPerson({
-          "name": row.isNotEmpty ? row[0]?.value?.toString() ?? "" : "",
-          "number": row.length > 1 ? row[1]?.value?.toString() ?? "" : "",
-          "rank": row.length > 2 ? row[2]?.value?.toString() ?? "" : "",
-          "unit": row.length > 3 ? row[3]?.value?.toString() ?? "" : "",
-          "status": row.length > 4 ? row[4]?.value?.toString() ?? "" : "",
+
+          "name": name,
+
+          "number": number,
+
+          "rank": rank,
+
+          "unit": unit,
+        });
+
+        // حفظ الحالة الشهرية
+        await DBHelper.insertMonthlyRecord({
+
+          "number": number,
+
           "month": month,
+
+          "status": status,
         });
       }
     }

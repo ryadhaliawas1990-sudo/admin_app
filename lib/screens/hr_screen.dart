@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import '../db/db_helper.dart';
-import '../export/excel_export.dart';
+
 import '../data/excel_import.dart';
-import '../export/monthly_comparison_pdf.dart';
-import '../core/app_refresher.dart';
-import '../core/military_units.dart';
+import '../export/comparison_excel_export.dart';
 
 class HrScreen extends StatefulWidget {
+
   const HrScreen({super.key});
 
   @override
@@ -15,162 +13,161 @@ class HrScreen extends StatefulWidget {
 
 class _HrScreenState extends State<HrScreen> {
 
-  final nameController = TextEditingController();
-  final numberController = TextEditingController();
-  final rankController = TextEditingController();
-  final statusController = TextEditingController();
+  final monthController =
+      TextEditingController();
 
-  List<Map<String, dynamic>> people = [];
+  final oldMonthController =
+      TextEditingController();
 
-  String searchQuery = "";
-  String selectedMonth = "2026-01";
+  final newMonthController =
+      TextEditingController();
 
-  String selectedUnit = MilitaryUnits.units.first;
+  String message = '';
 
-  @override
-  void initState() {
-    super.initState();
-    loadData();
+  // استيراد ملف شهر
+  Future<void> importMonth() async {
 
-    AppRefresher.refreshNotifier.addListener(() {
-      loadData();
-    });
-  }
+    if (monthController.text.isEmpty) {
+      return;
+    }
 
-  Future<void> loadData() async {
-    final data = searchQuery.isEmpty
-        ? await DBHelper.getPeople()
-        : await DBHelper.searchPeople(searchQuery);
-
-    if (!mounted) return;
+    await ExcelImport.pickAndImport(
+      monthController.text,
+    );
 
     setState(() {
-      people = data;
+
+      message =
+          'تم استيراد شهر ${monthController.text}';
     });
   }
 
-  Future<void> addPerson() async {
-    await DBHelper.insertPerson({
-      "name": nameController.text,
-      "number": numberController.text,
-      "rank": rankController.text,
-      "unit": selectedUnit,
-      "status": statusController.text,
-      "month": selectedMonth,
-    });
+  // مقارنة شهرين
+  Future<void> compareMonths() async {
 
-    _clearInputs();
-    loadData();
-  }
+    if (oldMonthController.text.isEmpty ||
+        newMonthController.text.isEmpty) {
+      return;
+    }
 
-  Future<void> updatePerson(int id) async {
-    await DBHelper.updatePerson(id, {
-      "name": nameController.text,
-      "number": numberController.text,
-      "rank": rankController.text,
-      "unit": selectedUnit,
-      "status": statusController.text,
-      "month": selectedMonth,
-    });
+    final path =
+        await ComparisonExcelExport.exportComparison(
 
-    if (!mounted) return;
-    Navigator.pop(context);
-    loadData();
-  }
+      oldMonthController.text,
 
-  Future<void> deletePerson(int id) async {
-    await DBHelper.deletePerson(id);
-    loadData();
-  }
-
-  Future<void> exportExcel() async {
-    final path = await ExcelExport.exportToExcel(people);
-
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("تم حفظ Excel في: $path")),
+      newMonthController.text,
     );
-  }
 
-  Future<void> importExcel() async {
-    await ExcelImport.pickAndImport(selectedMonth);
-    loadData();
-  }
+    setState(() {
 
-  // ✅ التصدير الصحيح الموحد
-  Future<void> exportComparisonPdf() async {
-    await MonthlyComparisonPdf.export(
-      months: [
-        "2026-01",
-        "2026-02",
-        "2026-03",
-      ],
-      people: people,
-    );
-  }
-
-  void _clearInputs() {
-    nameController.clear();
-    numberController.clear();
-    rankController.clear();
-    statusController.clear();
+      message =
+          'تم إنشاء ملف المقارنة:\n$path';
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      appBar: AppBar(title: const Text("HR")),
 
-      body: Column(
-        children: [
+      appBar: AppBar(
+        title: const Text(
+          'نظام المباينة',
+        ),
+      ),
 
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: Row(
-              children: [
+      body: Padding(
 
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: exportComparisonPdf,
-                    child: const Text("PDF"),
-                  ),
-                ),
+        padding: const EdgeInsets.all(16),
 
-                const SizedBox(width: 10),
+        child: ListView(
 
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: exportExcel,
-                    child: const Text("Excel"),
-                  ),
-                ),
-              ],
+          children: [
+
+            const Text(
+              'استيراد ملف Excel',
             ),
-          ),
 
-          Expanded(
-            child: ListView.builder(
-              itemCount: people.length,
-              itemBuilder: (context, index) {
+            const SizedBox(height: 10),
 
-                final p = people[index];
+            TextField(
 
-                return Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.person),
-                    title: Text(p["name"] ?? ""),
-                    subtitle: Text("رقم: ${p["number"]} | ${p["unit"]}"),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => deletePerson(p["id"]),
-                    ),
-                  ),
-                );
-              },
+              controller: monthController,
+
+              decoration: const InputDecoration(
+
+                border: OutlineInputBorder(),
+
+                labelText:
+                    'أدخل الشهر مثال 2026-01',
+              ),
             ),
-          ),
-        ],
+
+            const SizedBox(height: 10),
+
+            ElevatedButton(
+
+              onPressed: importMonth,
+
+              child: const Text(
+                'استيراد الملف',
+              ),
+            ),
+
+            const Divider(height: 40),
+
+            const Text(
+              'مقارنة شهرين',
+            ),
+
+            const SizedBox(height: 10),
+
+            TextField(
+
+              controller: oldMonthController,
+
+              decoration: const InputDecoration(
+
+                border: OutlineInputBorder(),
+
+                labelText:
+                    'الشهر القديم',
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            TextField(
+
+              controller: newMonthController,
+
+              decoration: const InputDecoration(
+
+                border: OutlineInputBorder(),
+
+                labelText:
+                    'الشهر الجديد',
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            ElevatedButton(
+
+              onPressed: compareMonths,
+
+              child: const Text(
+                'تشغيل المقارنة',
+              ),
+            ),
+
+            const SizedBox(height: 30),
+
+            Text(
+              message,
+            ),
+          ],
+        ),
       ),
     );
   }

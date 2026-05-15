@@ -5,58 +5,61 @@ class DBHelper {
 
   static Database? _db;
 
-  // =========================
   // فتح قاعدة البيانات
-  // =========================
   static Future<Database> get database async {
-    if (_db != null) return _db!;
-    _db = await _initDB();
+
+    if (_db != null) {
+      return _db!;
+    }
+
+    _db = await initDB();
+
     return _db!;
   }
 
-  static Future<Database> _initDB() async {
-    final path = join(await getDatabasesPath(), 'admin_app.db');
+  // إنشاء قاعدة البيانات
+  static Future<Database> initDB() async {
+
+    final path = join(
+      await getDatabasesPath(),
+      'admin_app.db',
+    );
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
+
       onCreate: (db, version) async {
 
+        // جدول الأشخاص
         await db.execute('''
           CREATE TABLE people (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
-            number TEXT,
+            number TEXT UNIQUE,
             rank TEXT,
-            unit TEXT,
-            status TEXT,
-            month TEXT
+            unit TEXT
+          )
+        ''');
+
+        // جدول السجل الشهري
+        await db.execute('''
+          CREATE TABLE monthly_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            number TEXT,
+            month TEXT,
+            status TEXT
           )
         ''');
       },
     );
   }
 
-  // =========================
-  // ➕ إدخال
-  // =========================
-  static Future<int> insertPerson(
+  // إضافة شخص
+  static Future<void> insertPerson(
     Map<String, dynamic> data,
   ) async {
-    final db = await database;
 
-    return await db.insert(
-      'people',
-      data,
-    );
-  }
-
-  // =========================
-  // 🔄 إدخال أو تحديث
-  // =========================
-  static Future<void> insertOrUpdate(
-    Map<String, dynamic> data,
-  ) async {
     final db = await database;
 
     await db.insert(
@@ -66,79 +69,48 @@ class DBHelper {
     );
   }
 
-  // =========================
-  // ✏️ تحديث
-  // =========================
-  static Future<int> updatePerson(
-    int id,
+  // إضافة سجل شهري
+  static Future<void> insertMonthlyRecord(
     Map<String, dynamic> data,
   ) async {
+
     final db = await database;
 
-    return await db.update(
-      'people',
+    await db.insert(
+      'monthly_records',
       data,
-      where: 'id = ?',
-      whereArgs: [id],
     );
   }
 
-  // =========================
-  // 👤 جلب كل البيانات
-  // =========================
+  // جلب الأشخاص
   static Future<List<Map<String, dynamic>>> getPeople() async {
+
     final db = await database;
+
     return await db.query('people');
   }
 
-  // =========================
-  // 📅 جلب حسب الشهر
-  // =========================
-  static Future<List<Map<String, dynamic>>> getByMonth(
+  // جلب سجلات شهر محدد
+  static Future<List<Map<String, dynamic>>> getMonthlyRecords(
     String month,
   ) async {
+
     final db = await database;
 
     return await db.query(
-      'people',
+      'monthly_records',
       where: 'month = ?',
       whereArgs: [month],
     );
   }
 
-  // =========================
-  // 📊 تقارير
-  // =========================
-  static Future<List<Map<String, dynamic>>> getReports() async {
-    final db = await database;
-    return await db.query('people');
-  }
+  // حذف جميع السجلات
+  static Future<void> clearAll() async {
 
-  // =========================
-  // 🔍 بحث
-  // =========================
-  static Future<List<Map<String, dynamic>>> searchPeople(
-    String query,
-  ) async {
     final db = await database;
 
-    return await db.query(
-      'people',
-      where: 'name LIKE ? OR number LIKE ?',
-      whereArgs: ['%$query%', '%$query%'],
-    );
-  }
+    await db.delete('people');
 
-  // =========================
-  // ❌ حذف
-  // =========================
-  static Future<int> deletePerson(int id) async {
-    final db = await database;
-
-    return await db.delete(
-      'people',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await db.delete('monthly_records');
   }
 }
