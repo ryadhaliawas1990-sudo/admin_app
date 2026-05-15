@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../data/excel_import.dart';
-import '../export/comparison_excel_export.dart';
+import '../features/excel_compare/compare_two_files.dart';
 
 class HrScreen extends StatefulWidget {
-
   const HrScreen({super.key});
 
   @override
@@ -13,57 +11,9 @@ class HrScreen extends StatefulWidget {
 
 class _HrScreenState extends State<HrScreen> {
 
-  final monthController =
-      TextEditingController();
+  String resultMessage = '';
 
-  final oldMonthController =
-      TextEditingController();
-
-  final newMonthController =
-      TextEditingController();
-
-  String message = '';
-
-  // استيراد ملف شهر
-  Future<void> importMonth() async {
-
-    if (monthController.text.isEmpty) {
-      return;
-    }
-
-    await ExcelImport.pickAndImport(
-      monthController.text,
-    );
-
-    setState(() {
-
-      message =
-          'تم استيراد شهر ${monthController.text}';
-    });
-  }
-
-  // مقارنة شهرين
-  Future<void> compareMonths() async {
-
-    if (oldMonthController.text.isEmpty ||
-        newMonthController.text.isEmpty) {
-      return;
-    }
-
-    final path =
-        await ComparisonExcelExport.exportComparison(
-
-      oldMonthController.text,
-
-      newMonthController.text,
-    );
-
-    setState(() {
-
-      message =
-          'تم إنشاء ملف المقارنة:\n$path';
-    });
-  }
+  bool loading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -71,100 +21,52 @@ class _HrScreenState extends State<HrScreen> {
     return Scaffold(
 
       appBar: AppBar(
-        title: const Text(
-          'نظام المباينة',
-        ),
+        title: const Text('HR Screen'),
       ),
 
       body: Padding(
 
         padding: const EdgeInsets.all(16),
 
-        child: ListView(
+        child: Column(
 
           children: [
 
-            const Text(
-              'استيراد ملف Excel',
-            ),
-
-            const SizedBox(height: 10),
-
-            TextField(
-
-              controller: monthController,
-
-              decoration: const InputDecoration(
-
-                border: OutlineInputBorder(),
-
-                labelText:
-                    'أدخل الشهر مثال 2026-01',
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
             ElevatedButton(
+              onPressed: loading
+                  ? null
+                  : () async {
 
-              onPressed: importMonth,
+                      setState(() {
+                        loading = true;
+                        resultMessage = '';
+                      });
 
-              child: const Text(
-                'استيراد الملف',
-              ),
+                      final result =
+                          await CompareTwoFiles.run();
+
+                      setState(() {
+                        loading = false;
+
+                        if (result == null) {
+                          resultMessage = 'تم إلغاء العملية';
+                        } else {
+                          resultMessage =
+                              'تم حفظ الملف:\n$result';
+                        }
+                      });
+                    },
+
+              child: loading
+                  ? const CircularProgressIndicator()
+                  : const Text('مقارنة ملفين Excel'),
             ),
 
-            const Divider(height: 40),
-
-            const Text(
-              'مقارنة شهرين',
-            ),
-
-            const SizedBox(height: 10),
-
-            TextField(
-
-              controller: oldMonthController,
-
-              decoration: const InputDecoration(
-
-                border: OutlineInputBorder(),
-
-                labelText:
-                    'الشهر القديم',
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            TextField(
-
-              controller: newMonthController,
-
-              decoration: const InputDecoration(
-
-                border: OutlineInputBorder(),
-
-                labelText:
-                    'الشهر الجديد',
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            ElevatedButton(
-
-              onPressed: compareMonths,
-
-              child: const Text(
-                'تشغيل المقارنة',
-              ),
-            ),
-
-            const SizedBox(height: 30),
+            const SizedBox(height: 20),
 
             Text(
-              message,
+              resultMessage,
+              textAlign: TextAlign.center,
             ),
           ],
         ),
