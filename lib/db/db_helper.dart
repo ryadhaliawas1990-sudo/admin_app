@@ -5,112 +5,65 @@ class DBHelper {
 
   static Database? _db;
 
+  // =========================
   // فتح قاعدة البيانات
+  // =========================
   static Future<Database> get database async {
-
-    if (_db != null) {
-      return _db!;
-    }
-
-    _db = await initDB();
-
+    if (_db != null) return _db!;
+    _db = await _initDB();
     return _db!;
   }
 
-  // إنشاء قاعدة البيانات
-  static Future<Database> initDB() async {
+  static Future<Database> _initDB() async {
 
-    final path = join(
-      await getDatabasesPath(),
-      'admin_app.db',
-    );
+    final path = join(await getDatabasesPath(), 'app.db');
 
     return await openDatabase(
       path,
-      version: 2,
-
+      version: 1,
       onCreate: (db, version) async {
 
-        // جدول الأشخاص
         await db.execute('''
-          CREATE TABLE people (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            number TEXT UNIQUE,
-            rank TEXT,
-            unit TEXT
-          )
-        ''');
-
-        // جدول السجل الشهري
-        await db.execute('''
-          CREATE TABLE monthly_records (
+          CREATE TABLE timeline (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             number TEXT,
+            name TEXT,
+            rank TEXT,
+            unit TEXT,
+            status TEXT,
             month TEXT,
-            status TEXT
+            year TEXT
           )
         ''');
       },
     );
   }
 
-  // إضافة شخص
-  static Future<void> insertPerson(
-    Map<String, dynamic> data,
-  ) async {
-
+  // =========================
+  // إدخال سجل
+  // =========================
+  static Future<int> insertTimeline(Map<String, dynamic> data) async {
     final db = await database;
-
-    await db.insert(
-      'people',
-      data,
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    return await db.insert('timeline', data);
   }
 
-  // إضافة سجل شهري
-  static Future<void> insertMonthlyRecord(
-    Map<String, dynamic> data,
-  ) async {
-
+  // =========================
+  // جلب كل البيانات
+  // =========================
+  static Future<List<Map<String, dynamic>>> getAllTimeline() async {
     final db = await database;
-
-    await db.insert(
-      'monthly_records',
-      data,
-    );
+    return await db.query('timeline');
   }
 
-  // جلب الأشخاص
-  static Future<List<Map<String, dynamic>>> getPeople() async {
-
+  // =========================
+  // جلب فرد واحد عبر الرقم
+  // =========================
+  static Future<List<Map<String, dynamic>>> getPersonTimeline(String number) async {
     final db = await database;
-
-    return await db.query('people');
-  }
-
-  // جلب سجلات شهر محدد
-  static Future<List<Map<String, dynamic>>> getMonthlyRecords(
-    String month,
-  ) async {
-
-    final db = await database;
-
     return await db.query(
-      'monthly_records',
-      where: 'month = ?',
-      whereArgs: [month],
+      'timeline',
+      where: 'number = ?',
+      whereArgs: [number],
     );
-  }
-
-  // حذف جميع السجلات
-  static Future<void> clearAll() async {
-
-    final db = await database;
-
-    await db.delete('people');
-
-    await db.delete('monthly_records');
   }
 }
