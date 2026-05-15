@@ -43,7 +43,7 @@ class _HrScreenState extends State<HrScreen> {
                       });
 
                       final result =
-                          await CompareTwoFiles.run();
+                          await CompareTwoFiles.run(context);
 
                       setState(() {
                         loading = false;

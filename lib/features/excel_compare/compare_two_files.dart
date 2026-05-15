@@ -62,7 +62,9 @@ class CompareTwoFiles {
 
       Map<String, dynamic>? found;
 
-      // 🔹 مطابقة بالرقم
+      // =========================
+      // 1️⃣ مطابقة بالرقم (أقوى أولوية)
+      // =========================
       for (var n in newData) {
 
         if ((n['الرقم'] ?? '').toString() == oldNumber &&
@@ -74,26 +76,36 @@ class CompareTwoFiles {
         }
       }
 
-      // 🔹 مطابقة بالاسم
+      // =========================
+      // 2️⃣ مطابقة بالاسم (محسنة الدقة)
+      // =========================
       if (found == null) {
 
         for (var n in newData) {
 
-          if (!usedNew.contains(n) &&
-              NameMatcher.isSimilar(
-                oldName,
-                (n['الاسم'] ?? '').toString(),
-              )) {
+          if (!usedNew.contains(n)) {
 
-            found = n;
-            usedNew.add(n);
-            break;
+            String newName = (n['الاسم'] ?? '').toString();
+
+            bool isSimilar = NameMatcher.isSimilar(oldName, newName);
+
+            bool strongMatch =
+                oldName.length > 3 &&
+                newName.length > 3 &&
+                isSimilar;
+
+            if (strongMatch) {
+
+              found = n;
+              usedNew.add(n);
+              break;
+            }
           }
         }
       }
 
       // =========================
-      // النتيجة
+      // تحليل النتيجة
       // =========================
       if (found != null) {
 
