@@ -1,14 +1,15 @@
 import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:flutter/material.dart';
 
 import '../../core/excel_reader.dart';
 import '../../core/name_matcher.dart';
+import '../../screens/comparison_result_screen.dart';
 
 class CompareTwoFiles {
 
-  static Future<String?> run() async {
+  static Future<void> run(BuildContext context) async {
 
     // =========================
     // اختيار الملف القديم
@@ -18,7 +19,7 @@ class CompareTwoFiles {
       allowedExtensions: ['xlsx'],
     );
 
-    if (oldFile == null) return null;
+    if (oldFile == null) return;
 
     // =========================
     // اختيار الملف الجديد
@@ -28,7 +29,7 @@ class CompareTwoFiles {
       allowedExtensions: ['xlsx'],
     );
 
-    if (newFile == null) return null;
+    if (newFile == null) return;
 
     final oldExcel = Excel.decodeBytes(
       File(oldFile.files.single.path!).readAsBytesSync(),
@@ -47,8 +48,8 @@ class CompareTwoFiles {
     List<Map<String, dynamic>> usedNew = [];
 
     List<Map<String, dynamic>> changed = [];
-    List<Map<String, dynamic>> added = [];
     List<Map<String, dynamic>> missing = [];
+    List<Map<String, dynamic>> added = [];
 
     // =========================
     // مقارنة الملف القديم
@@ -92,7 +93,7 @@ class CompareTwoFiles {
       }
 
       // =========================
-      // تحليل النتيجة
+      // النتيجة
       // =========================
       if (found != null) {
 
@@ -132,62 +133,20 @@ class CompareTwoFiles {
     }
 
     // =========================
-    // إنشاء ملف النتيجة
+    // فتح شاشة النتائج
     // =========================
-    final excel = Excel.createExcel();
-    final sheet = excel['Result'];
+    if (context.mounted) {
 
-    sheet.appendRow([
-      TextCellValue('الرقم'),
-      TextCellValue('الاسم'),
-      TextCellValue('الحالة القديمة'),
-      TextCellValue('الحالة الجديدة'),
-      TextCellValue('النتيجة'),
-    ]);
-
-    for (var c in changed) {
-
-      sheet.appendRow([
-        TextCellValue(c['number'] ?? ''),
-        TextCellValue(c['name'] ?? ''),
-        TextCellValue(c['old'] ?? ''),
-        TextCellValue(c['new'] ?? ''),
-        TextCellValue('تغير'),
-      ]);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ComparisonResultScreen(
+            changed: changed,
+            missing: missing,
+            added: added,
+          ),
+        ),
+      );
     }
-
-    for (var m in missing) {
-
-      sheet.appendRow([
-        TextCellValue(m['number'] ?? ''),
-        TextCellValue(m['name'] ?? ''),
-        TextCellValue(''),
-        TextCellValue(''),
-        TextCellValue('مفقود'),
-      ]);
-    }
-
-    for (var a in added) {
-
-      sheet.appendRow([
-        TextCellValue(a['number'] ?? ''),
-        TextCellValue(a['name'] ?? ''),
-        TextCellValue(''),
-        TextCellValue(''),
-        TextCellValue('جديد'),
-      ]);
-    }
-
-    final dir = await getApplicationDocumentsDirectory();
-
-    final file = File(
-      '${dir.path}/comparison_result.xlsx',
-    );
-
-    final bytes = excel.encode()!;
-
-    await file.writeAsBytes(bytes);
-
-    return file.path;
   }
 }
