@@ -23,14 +23,13 @@ class PersonTimelinePdf {
 
     final pdf = pw.Document();
 
-    // تحديد الاتجاه حسب عدد السجلات
-    final bool landscape = timeline.length > 12;
+    final isLandscape = timeline.length > 12;
 
     pdf.addPage(
 
       pw.MultiPage(
 
-        pageFormat: landscape
+        pageFormat: isLandscape
             ? PdfPageFormat.a4.landscape
             : PdfPageFormat.a4,
 
@@ -38,68 +37,32 @@ class PersonTimelinePdf {
 
           return [
 
-            // النص العلوي
+            // العنوان
             if (topText.isNotEmpty)
-
-              pw.Container(
-                margin:
-                    const pw.EdgeInsets.only(bottom: 20),
-
-                child: pw.Text(
-                  topText,
-                  style: pw.TextStyle(
-                    fontSize: 18,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                  textDirection: pw.TextDirection.rtl,
+              pw.Text(
+                topText,
+                style: pw.TextStyle(
+                  fontSize: 18,
+                  fontWeight: pw.FontWeight.bold,
                 ),
               ),
 
-            // معلومات الشخص
+            pw.SizedBox(height: 20),
+
+            // بيانات الفرد
             pw.Container(
-
               padding: const pw.EdgeInsets.all(10),
-
               decoration: pw.BoxDecoration(
                 border: pw.Border.all(),
               ),
-
               child: pw.Column(
-
-                crossAxisAlignment:
-                    pw.CrossAxisAlignment.start,
-
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
 
-                  pw.Text(
-                    'الاسم: $name',
-                    textDirection:
-                        pw.TextDirection.rtl,
-                  ),
-
-                  pw.SizedBox(height: 8),
-
-                  pw.Text(
-                    'الرقم: $number',
-                    textDirection:
-                        pw.TextDirection.rtl,
-                  ),
-
-                  pw.SizedBox(height: 8),
-
-                  pw.Text(
-                    'الرتبة: $rank',
-                    textDirection:
-                        pw.TextDirection.rtl,
-                  ),
-
-                  pw.SizedBox(height: 8),
-
-                  pw.Text(
-                    'الوحدة: $unit',
-                    textDirection:
-                        pw.TextDirection.rtl,
-                  ),
+                  pw.Text('الاسم: $name'),
+                  pw.Text('الرقم: $number'),
+                  pw.Text('الرتبة: $rank'),
+                  pw.Text('الوحدة: $unit'),
                 ],
               ),
             ),
@@ -107,49 +70,44 @@ class PersonTimelinePdf {
             pw.SizedBox(height: 20),
 
             // الجدول
-            pw.Table.fromTextArray(
+            pw.TableHelper.fromTextArray(
 
-              headerDirection:
-                  pw.TextDirection.rtl,
-
-              cellAlignment:
-                  pw.Alignment.center,
-
-              headers: [
-                'السنة',
-                'الشهر',
-                'الحالة',
-              ],
+              headers: ['السنة', 'الشهر', 'الحالة'],
 
               data: timeline.map((item) {
-
                 return [
-
-                  item['year']
-                          ?.toString() ??
-                      '',
-
-                  item['month']
-                          ?.toString() ??
-                      '',
-
-                  item['status']
-                          ?.toString() ??
-                      '',
+                  item['year']?.toString() ?? '',
+                  item['month']?.toString() ?? '',
+                  item['status']?.toString() ?? '',
                 ];
               }).toList(),
             ),
 
-            pw.SizedBox(height: 40),
+            pw.SizedBox(height: 30),
 
             // التواقيع
             pw.Row(
-
-              mainAxisAlignment:
-                  pw.MainAxisAlignment.spaceBetween,
-
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
 
-                pw.Text(
-                  leftSign,
-                  textDirection
+                pw.Text(leftSign),
+
+                pw.Text(rightSign),
+              ],
+            ),
+          ];
+        },
+      ),
+    );
+
+    final dir = await getApplicationDocumentsDirectory();
+
+    final file = File('${dir.path}/timeline_report.pdf');
+
+    await file.writeAsBytes(await pdf.save());
+
+    await Printing.layoutPdf(
+      onLayout: (format) async => pdf.save(),
+    );
+  }
+}
