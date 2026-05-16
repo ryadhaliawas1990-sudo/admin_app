@@ -21,7 +21,6 @@ class DBHelper {
 
       onCreate: (db, version) async {
 
-        // 🟢 الجدول الرئيسي
         await db.execute('''
           CREATE TABLE timeline (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,7 +34,6 @@ class DBHelper {
           )
         ''');
 
-        // 🟢 تتبع الأشهر المستوردة
         await db.execute('''
           CREATE TABLE imported_months (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,7 +43,6 @@ class DBHelper {
           )
         ''');
 
-        // 🚀 تحسين الأداء (Indexes)
         await db.execute('CREATE INDEX idx_number ON timeline(number)');
         await db.execute('CREATE INDEX idx_name ON timeline(name)');
         await db.execute('CREATE INDEX idx_month_year ON timeline(month, year)');
@@ -73,7 +70,7 @@ class DBHelper {
   }
 
   // =========================
-  // 🟢 INSERT
+  // INSERT
   // =========================
 
   static Future<int> insertTimeline(Map<String, dynamic> data) async {
@@ -82,16 +79,7 @@ class DBHelper {
   }
 
   // =========================
-  // 🟢 GET ALL (اختياري)
-  // =========================
-
-  static Future<List<Map<String, dynamic>>> getAllTimeline() async {
-    final db = await database;
-    return db.query('timeline', orderBy: 'id DESC');
-  }
-
-  // =========================
-  // 🚀 PAGINATION (تسريع العرض)
+  // PAGINATION
   // =========================
 
   static Future<List<Map<String, dynamic>>> getTimelinePaged({
@@ -110,7 +98,23 @@ class DBHelper {
   }
 
   // =========================
-  // 🔍 SEARCH (احترافي)
+  // GET PERSON TIMELINE (مطلوبة)
+  // =========================
+
+  static Future<List<Map<String, dynamic>>> getPersonTimeline(String number) async {
+
+    final db = await database;
+
+    return db.query(
+      'timeline',
+      where: 'number = ?',
+      whereArgs: [number],
+      orderBy: 'year ASC, month ASC',
+    );
+  }
+
+  // =========================
+  // SEARCH
   // =========================
 
   static Future<List<Map<String, dynamic>>> advancedSearch({
@@ -134,7 +138,6 @@ class DBHelper {
          unit LIKE ? OR
          status LIKE ?)
       ''');
-
       args.addAll(List.filled(5, '%$query%'));
     }
 
@@ -169,7 +172,7 @@ class DBHelper {
   }
 
   // =========================
-  // 🟢 MONTH CONTROL
+  // MONTH CONTROL
   // =========================
 
   static Future<bool> isMonthImported(String month, String year) async {
@@ -208,33 +211,5 @@ class DBHelper {
       where: 'month = ? AND year = ?',
       whereArgs: [month, year],
     );
-  }
-
-  // =========================
-  // 🧪 TEST DATA
-  // =========================
-
-  static Future<void> insertTestData() async {
-    final db = await database;
-
-    await db.insert('timeline', {
-      'number': '1001',
-      'name': 'محمد علي',
-      'rank': 'رقيب',
-      'unit': 'الوحدة 1',
-      'status': 'نشط',
-      'month': '1',
-      'year': '2025',
-    });
-
-    await db.insert('timeline', {
-      'number': '1002',
-      'name': 'أحمد حسن',
-      'rank': 'جندي',
-      'unit': 'الوحدة 2',
-      'status': 'إجازة',
-      'month': '2',
-      'year': '2025',
-    });
   }
 }
