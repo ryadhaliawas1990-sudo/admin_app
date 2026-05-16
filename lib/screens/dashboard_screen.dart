@@ -13,6 +13,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int totalPeople = 0;
   int totalRecords = 0;
   int totalYears = 0;
+
   Map<String, int> statusCount = {};
 
   bool loading = true;
@@ -70,6 +71,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("لوحة التحكم"),
+        centerTitle: true,
       ),
 
       body: loading
@@ -79,32 +81,85 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 children: [
 
-                  _card("عدد الأفراد", "$totalPeople"),
-                  _card("عدد السجلات", "$totalRecords"),
-                  _card("عدد السنوات", "$totalYears"),
+                  // 🟢 الإحصائيات الأساسية
+                  Row(
+                    children: [
+
+                      Expanded(child: _card("الأفراد", totalPeople)),
+                      const SizedBox(width: 10),
+
+                      Expanded(child: _card("السجلات", totalRecords)),
+                    ],
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  _card("السنوات المسجلة", totalYears),
 
                   const SizedBox(height: 20),
 
-                  const Text(
-                    "توزيع الحالات",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                  const Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      "توزيع الحالات",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
 
                   const SizedBox(height: 10),
 
+                  // 🟢 الحالات بشكل بطاقات
                   Expanded(
-                    child: ListView(
-                      children: statusCount.entries.map((e) {
-                        return Card(
-                          child: ListTile(
-                            title: Text(e.key),
-                            trailing: Text("${e.value}"),
+                    child: GridView.builder(
+                      itemCount: statusCount.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
+                        childAspectRatio: 2,
+                      ),
+                      itemBuilder: (context, index) {
+
+                        final key = statusCount.keys.elementAt(index);
+                        final value = statusCount[key]!;
+
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.blueGrey),
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+
+                                Text(
+                                  key,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+
+                                const SizedBox(height: 5),
+
+                                Text(
+                                  value.toString(),
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         );
-                      }).toList(),
+                      },
                     ),
                   ),
                 ],
@@ -113,16 +168,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _card(String title, String value) {
+  Widget _card(String title, int value) {
     return Card(
-      child: ListTile(
-        title: Text(title),
-        trailing: Text(
-          value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              value.toString(),
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ),
     );

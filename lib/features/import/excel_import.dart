@@ -8,17 +8,12 @@ import '../../db/db_helper.dart';
 class ExcelImport {
 
   static Future<void> importTimeline({
-
     required String month,
     required String year,
-
   }) async {
 
-    final result =
-        await FilePicker.platform.pickFiles(
-
+    final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-
       allowedExtensions: ['xlsx'],
     );
 
@@ -26,8 +21,7 @@ class ExcelImport {
       return;
     }
 
-    final path =
-        result.files.single.path;
+    final path = result.files.single.path;
 
     if (path == null) {
       return;
@@ -35,27 +29,21 @@ class ExcelImport {
 
     final file = File(path);
 
-    final bytes =
-        file.readAsBytesSync();
+    final bytes = file.readAsBytesSync();
 
-    final excel =
-        Excel.decodeBytes(bytes);
+    final excel = Excel.decodeBytes(bytes);
 
-    final sheet =
-        excel.tables.values.first;
+    final sheet = excel.tables.values.first;
 
     if (sheet == null) {
       return;
     }
 
     // الصف الأول عناوين
-    for (int i = 1;
-        i < sheet.rows.length;
-        i++) {
+    for (int i = 1; i < sheet.rows.length; i++) {
 
       final row = sheet.rows[i];
 
-      // أقل عدد أعمدة
       if (row.length < 5) {
         continue;
       }
@@ -63,10 +51,10 @@ class ExcelImport {
       final number =
           row[0]?.value.toString() ?? '';
 
-      final name =
+      final rank =
           row[1]?.value.toString() ?? '';
 
-      final rank =
+      final name =
           row[2]?.value.toString() ?? '';
 
       final unit =
@@ -75,29 +63,18 @@ class ExcelImport {
       final status =
           row[4]?.value.toString() ?? '';
 
-      // تجاهل السطر الفارغ
-      if (number.isEmpty &&
-          name.isEmpty) {
-
+      if (number.isEmpty && name.isEmpty) {
         continue;
       }
 
-      // إدخال قاعدة البيانات
       await DBHelper.insertTimeline({
 
         'number': number,
-
-        'name': name,
-
         'rank': rank,
-
+        'name': name,
         'unit': unit,
-
         'status': status,
-
-        // الشهر والسنة من الواجهة
         'month': month,
-
         'year': year,
       });
     }

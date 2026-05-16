@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+
 import 'hr_screen.dart';
 import 'report_screen.dart';
+import 'dashboard_screen.dart';
+import 'export_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -12,6 +15,7 @@ class HomeScreen extends StatelessWidget {
         title: const Text("النظام الإداري"),
         centerTitle: true,
       ),
+
       body: GridView.count(
         crossAxisCount: 2,
         padding: const EdgeInsets.all(12),
@@ -31,12 +35,36 @@ class HomeScreen extends StatelessWidget {
 
           _card(
             context,
+            "لوحة التحكم",
+            Icons.dashboard,
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DashboardScreen()),
+              );
+            },
+          ),
+
+          _card(
+            context,
             "التقارير",
             Icons.bar_chart,
             () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const ReportScreen()),
+              );
+            },
+          ),
+
+          _card(
+            context,
+            "تصدير Excel",
+            Icons.download,
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ExportScreen()),
               );
             },
           ),
@@ -49,11 +77,12 @@ class HomeScreen extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Card(
+        elevation: 3,
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 50),
+              Icon(icon, size: 45),
               const SizedBox(height: 10),
               Text(title),
             ],

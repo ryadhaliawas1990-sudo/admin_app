@@ -13,33 +13,35 @@ dependencies:
 
   cupertino_icons: ^1.0.8
 
-  # 🟢 قاعدة البيانات
+  # قاعدة البيانات
   sqflite: ^2.3.0
   path: ^1.9.0
   path_provider: ^2.1.2
 
-  # 📊 Excel
+  # Excel
   excel: ^4.0.6
 
-  # 📁 اختيار الملفات
+  # اختيار الملفات
   file_picker: ^8.0.0
 
-  # 📄 PDF
+  # PDF
   pdf: ^3.10.7
   printing: ^5.12.0
 
-  # 📂 فتح الملفات
+  # فتح الملفات
   open_file: ^3.5.10
 
-  # 📤 مشاركة
+  # مشاركة الملفات
   share_plus: ^10.0.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  # ⚠️ مهم جداً للتوافق مع Dart 3.5+
   flutter_lints: ^4.0.0
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/fonts/

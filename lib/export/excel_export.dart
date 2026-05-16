@@ -1,48 +1,103 @@
 import 'dart:io';
-
 import 'package:excel/excel.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart';
+import 'package:share_plus/share_plus.dart';
+
+import '../db/db_helper.dart';
 
 class ExcelExport {
 
-  static Future<String> exportToExcel(
-    List<Map<String, dynamic>> people,
-  ) async {
+  static Future<File> exportFiltered({
+    String? status,
+    String? unit,
+    String? rank,
+    bool openAfter = true,
+    bool shareAfter = false,
+  }) async {
 
-    var excel = Excel.createExcel();
+    final db = await DBHelper.database;
 
-    Sheet sheet = excel['الأفراد'];
+    String where = '1=1';
+    List args = [];
 
-    // العناوين
+    if (status != null) {
+      where += ' AND status = ?';
+      args.add(status);
+    }
+
+    if (unit != null) {
+      where += ' AND unit = ?';
+      args.add(unit);
+    }
+
+    if (rank != null) {
+      where += ' AND rank = ?';
+      args.add(rank);
+    }
+
+    final data = await db.query(
+      'timeline',
+      where: where,
+      whereArgs: args,
+    );
+
+    final excel = Excel.createExcel();
+    final sheet = excel['Report'];
+
+    // 🟢 headers
     sheet.appendRow([
-      TextCellValue('الاسم'),
       TextCellValue('الرقم'),
       TextCellValue('الرتبة'),
+      TextCellValue('الاسم'),
       TextCellValue('الوحدة'),
       TextCellValue('الحالة'),
+      TextCellValue('الشهر'),
+      TextCellValue('السنة'),
     ]);
 
-    // البيانات
-    for (var p in people) {
+    for (var row in data) {
       sheet.appendRow([
-        TextCellValue(p['name'] ?? ''),
-        TextCellValue(p['number'] ?? ''),
-        TextCellValue(p['rank'] ?? ''),
-        TextCellValue(p['unit'] ?? ''),
-        TextCellValue(p['status'] ?? ''),
+        TextCellValue(row['number'].toString()),
+        TextCellValue(row['rank'].toString()),
+        TextCellValue(row['name'].toString()),
+        TextCellValue(row['unit'].toString()),
+        TextCellValue(row['status'].toString()),
+        TextCellValue(row['month'].toString()),
+        TextCellValue(row['year'].toString()),
       ]);
     }
 
+    // 🟢 اسم ملف تلقائي حسب الفلتر
+    String fileName = "report";
+
+    if (status != null) fileName += "_$status";
+    if (unit != null) fileName += "_$unit";
+    if (rank != null) fileName += "_$rank";
+
+    fileName += "_${DateTime.now().millisecondsSinceEpoch}.xlsx";
+
     final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/$fileName');
 
-    String path = "${dir.path}/people.xlsx";
+    final bytes = excel.encode();
+    if (bytes != null) {
+      await file.writeAsBytes(bytes);
+    }
 
-    File file = File(path);
+    // 🟢 فتح الملف مباشرة
+    if (openAfter) {
+      await OpenFile.open(file.path);
+    }
 
-    await file.writeAsBytes(
-      excel.encode()!,
-    );
+    // 🟢 مشاركة الملف
+    if (shareAfter) {
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'تقرير Excel',
+      );
+    }
 
-    return path;
+    return file;
   }
 }
