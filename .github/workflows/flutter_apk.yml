@@ -1,42 +1,33 @@
-name: Flutter APK Build
+name: Build Flutter APK
 
 on:
   push:
     branches:
       - main
       - stable
+      - clean_start
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. جلب الكود
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. تثبيت Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: 'stable'
-          cache: true
+          flutter-version: stable
 
-      # 3. تحميل dependencies
-      - name: Install dependencies
+      - name: Get dependencies
         run: flutter pub get
 
-      # 4. تشغيل تحليل (اختياري لكنه مفيد)
-      - name: Analyze project
-        run: flutter analyze || true
-
-      # 5. بناء APK (Release)
       - name: Build APK
         run: flutter build apk --release
 
-      # 6. رفع APK كـ artifact
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-apk
+          name: app-apk
           path: build/app/outputs/flutter-apk/app-release.apk
