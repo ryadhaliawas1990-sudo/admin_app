@@ -24,7 +24,7 @@ dependencies:
   # اختيار الملفات
   file_picker: ^8.0.0
 
-  # PDF
+  # PDF + طباعة (حل HTML + PDF)
   pdf: ^3.10.7
   printing: ^5.12.0
 
@@ -33,6 +33,9 @@ dependencies:
 
   # مشاركة الملفات
   share_plus: ^10.0.2
+
+  # 🔥 مهم لإصلاح HTML → PDF (حل العربي)
+  html: ^0.15.4
 
 dev_dependencies:
   flutter_test:

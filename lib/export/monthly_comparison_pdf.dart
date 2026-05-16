@@ -1,164 +1,78 @@
 import 'dart:io';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
+import 'package:html/parser.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:pdf/widgets.dart' as pw;
+import 'package:pdf/pdf.dart';
+import 'package:printing/printing.dart';
 
 class MonthlyComparisonPdf {
 
   static Future<String> export({
     required List<String> months,
     required List<Map<String, dynamic>> people,
-
-    // 🟢 إضافة نص يدوي أعلى التقرير
-    String headerText = "تقرير المباينة",
-    String footerLeft = "",
-    String footerRight = "",
   }) async {
 
     final pdf = pw.Document();
 
-    // 🔥 تحميل خط عربي
-    final fontData = await rootBundle.load("assets/fonts/Cairo-Regular.ttf");
-    final ttf = pw.Font.ttf(fontData);
+    final htmlContent = StringBuffer();
 
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4.landscape,
+    htmlContent.write('''
+    <html dir="rtl">
+    <head>
+      <style>
+        body { font-family: Arial; direction: rtl; text-align: right; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid black; padding: 5px; text-align: center; }
+        th { background: #eee; }
+      </style>
+    </head>
+    <body>
+      <h2>تقرير المباينة</h2>
 
-        theme: pw.ThemeData.withFont(
-          base: ttf,
-        ),
+      <table>
+        <tr>
+          <th>الرقم</th>
+          <th>الاسم</th>
+          <th>الرتبة</th>
+''');
 
-        textDirection: pw.TextDirection.rtl,
+    for (final m in months) {
+      htmlContent.write('<th>$m</th>');
+    }
 
-        build: (context) {
+    htmlContent.write('</tr>');
 
-          return [
+    for (final p in people) {
 
-            // 🟢 النص العلوي اليدوي
-            pw.Text(
-              headerText,
-              textAlign: pw.TextAlign.right,
-              style: pw.TextStyle(
-                fontSize: 16,
-                fontWeight: pw.FontWeight.bold,
-              ),
-            ),
+      final monthsMap = (p["months"] ?? {}) as Map<String, dynamic>;
 
-            pw.SizedBox(height: 15),
+      htmlContent.write('<tr>');
+      htmlContent.write('<td>${p["number"] ?? ""}</td>');
+      htmlContent.write('<td>${p["name"] ?? ""}</td>');
+      htmlContent.write('<td>${p["rank"] ?? ""}</td>');
 
-            // 🟢 الجدول
-            pw.Table(
-              border: pw.TableBorder.all(color: PdfColors.black),
+      for (final m in months) {
+        htmlContent.write('<td>${monthsMap[m] ?? "-"}</td>');
+      }
 
-              columnWidths: {
-                0: const pw.FixedColumnWidth(60),
-                1: const pw.FixedColumnWidth(120),
-                2: const pw.FixedColumnWidth(100),
-              },
+      htmlContent.write('</tr>');
+    }
 
-              children: [
+    htmlContent.write('</table></body></html>');
 
-                // 🔵 رأس الجدول
-                pw.TableRow(
-                  decoration: const pw.BoxDecoration(
-                    color: PdfColors.grey300,
-                  ),
-
-                  children: [
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text("الرقم", textAlign: pw.TextAlign.center),
-                    ),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text("الاسم", textAlign: pw.TextAlign.center),
-                    ),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text("الرتبة", textAlign: pw.TextAlign.center),
-                    ),
-
-                    ...months.map((m) => pw.Padding(
-                      padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text(m, textAlign: pw.TextAlign.center),
-                    )),
-                  ],
-                ),
-
-                // 🟢 البيانات
-                ...people.map((p) {
-
-                  final monthsMap =
-                      (p["months"] ?? {}) as Map<String, dynamic>;
-
-                  return pw.TableRow(
-                    children: [
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(4),
-                        child: pw.Text((p["number"] ?? "").toString()),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(4),
-                        child: pw.Text((p["name"] ?? "").toString()),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(4),
-                        child: pw.Text((p["rank"] ?? "").toString()),
-                      ),
-
-                      ...months.map((m) {
-                        return pw.Padding(
-                          padding: const pw.EdgeInsets.all(4),
-                          child: pw.Text(
-                            (monthsMap[m] ?? "-").toString(),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        );
-                      }),
-                    ],
-                  );
-                }),
-              ],
-            ),
-
-            pw.SizedBox(height: 30),
-
-            // 🟢 التواقيع
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-
-                pw.Column(
-                  children: [
-                    pw.Text("التوقيع"),
-                    pw.SizedBox(height: 20),
-                    pw.Text(footerLeft),
-                  ],
-                ),
-
-                pw.Column(
-                  children: [
-                    pw.Text("اعتماد"),
-                    pw.SizedBox(height: 20),
-                    pw.Text(footerRight),
-                  ],
-                ),
-              ],
-            ),
-          ];
-        },
-      ),
+    // تحويل HTML إلى PDF
+    final pdfData = await Printing.convertHtml(
+      format: PdfPageFormat.a4.landscape,
+      html: htmlContent.toString(),
     );
 
     final dir = await getApplicationDocumentsDirectory();
 
     final file = File(
-      "${dir.path}/comparison_${DateTime.now().millisecondsSinceEpoch}.pdf",
+      "${dir.path}/report_${DateTime.now().millisecondsSinceEpoch}.pdf",
     );
 
-    await file.writeAsBytes(await pdf.save());
+    await file.writeAsBytes(pdfData);
 
     return file.path;
   }
