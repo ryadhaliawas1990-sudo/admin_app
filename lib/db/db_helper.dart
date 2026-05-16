@@ -79,7 +79,20 @@ class DBHelper {
   }
 
   // =========================
-  // PAGINATION
+  // GET ALL (مطلوب في HR)
+  // =========================
+
+  static Future<List<Map<String, dynamic>>> getAllTimeline() async {
+    final db = await database;
+
+    return db.query(
+      'timeline',
+      orderBy: 'id DESC',
+    );
+  }
+
+  // =========================
+  // PAGINATION (تسريع العرض)
   // =========================
 
   static Future<List<Map<String, dynamic>>> getTimelinePaged({
@@ -98,7 +111,7 @@ class DBHelper {
   }
 
   // =========================
-  // GET PERSON TIMELINE (مطلوبة)
+  // GET PERSON TIMELINE
   // =========================
 
   static Future<List<Map<String, dynamic>>> getPersonTimeline(String number) async {
@@ -114,7 +127,7 @@ class DBHelper {
   }
 
   // =========================
-  // SEARCH
+  // ADVANCED SEARCH
   // =========================
 
   static Future<List<Map<String, dynamic>>> advancedSearch({
@@ -138,6 +151,7 @@ class DBHelper {
          unit LIKE ? OR
          status LIKE ?)
       ''');
+
       args.addAll(List.filled(5, '%$query%'));
     }
 
