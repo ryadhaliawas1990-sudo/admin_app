@@ -39,7 +39,7 @@ dev_dependencies:
     sdk: flutter
 
   # ⚠️ مهم جداً للتوافق مع Dart 3.5+
-  flutter_lints: ^5.0.0
+  flutter_lints: ^4.0.0
 
 flutter:
   uses-material-design: true
