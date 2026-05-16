@@ -1,8 +1,6 @@
 import 'dart:io';
-
 import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
-
 import '../../db/db_helper.dart';
 
 class ExcelImport {
@@ -17,66 +15,49 @@ class ExcelImport {
       allowedExtensions: ['xlsx'],
     );
 
-    if (result == null) {
-      return;
-    }
+    if (result == null || result.files.single.path == null) return;
 
-    final path = result.files.single.path;
-
-    if (path == null) {
-      return;
-    }
-
-    final file = File(path);
-
+    final file = File(result.files.single.path!);
     final bytes = file.readAsBytesSync();
-
     final excel = Excel.decodeBytes(bytes);
 
     final sheet = excel.tables.values.first;
+    if (sheet == null) return;
 
-    if (sheet == null) {
-      return;
-    }
+    final db = await DBHelper.database;
 
-    // الصف الأول عناوين
-    for (int i = 1; i < sheet.rows.length; i++) {
+    // 🔥 بداية Transaction (أهم تحسين أداء)
+    await db.transaction((txn) async {
 
-      final row = sheet.rows[i];
+      final batch = txn.batch();
 
-      if (row.length < 5) {
-        continue;
+      for (int i = 1; i < sheet.rows.length; i++) {
+
+        final row = sheet.rows[i];
+
+        if (row.length < 6) continue;
+
+        final number = row[1]?.value.toString().trim() ?? '';
+        final rank   = row[2]?.value.toString().trim() ?? '';
+        final name   = row[3]?.value.toString().trim() ?? '';
+        final unit   = row[4]?.value.toString().trim() ?? '';
+        final status = row[5]?.value.toString().trim() ?? '';
+
+        if (number.isEmpty && name.isEmpty) continue;
+
+        batch.insert('timeline', {
+          'number': number,
+          'rank': rank,
+          'name': name,
+          'unit': unit,
+          'status': status,
+          'month': month,
+          'year': year,
+        });
       }
 
-      final number =
-          row[0]?.value.toString() ?? '';
-
-      final rank =
-          row[1]?.value.toString() ?? '';
-
-      final name =
-          row[2]?.value.toString() ?? '';
-
-      final unit =
-          row[3]?.value.toString() ?? '';
-
-      final status =
-          row[4]?.value.toString() ?? '';
-
-      if (number.isEmpty && name.isEmpty) {
-        continue;
-      }
-
-      await DBHelper.insertTimeline({
-
-        'number': number,
-        'rank': rank,
-        'name': name,
-        'unit': unit,
-        'status': status,
-        'month': month,
-        'year': year,
-      });
-    }
+      // 🚀 تنفيذ كل الإدخالات دفعة واحدة
+      await batch.commit(noResult: true);
+    });
   }
 }
