@@ -6,10 +6,12 @@ import '../../db/db_helper.dart';
 
 class ExcelImport {
 
-  static Future<bool> importTimeline({
+  static Future<void> importTimeline({
     required String month,
     required String year,
   }) async {
+
+    print("START IMPORT");
 
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -18,8 +20,11 @@ class ExcelImport {
       );
 
       if (result == null || result.files.single.path == null) {
-        return false;
+        print("NO FILE SELECTED");
+        return;
       }
+
+      print("FILE SELECTED");
 
       final file = File(result.files.single.path!);
       final bytes = await file.readAsBytes();
@@ -27,14 +32,18 @@ class ExcelImport {
       final excel = Excel.decodeBytes(bytes);
       final sheet = excel.tables.values.first;
 
-      if (sheet == null) return false;
+      if (sheet == null) {
+        print("SHEET NULL");
+        return;
+      }
 
-      // 🔥 حذف بيانات الشهر القديم (استبدال)
-      await DBHelper.deleteMonthData(month, year);
+      print("EXCEL LOADED");
 
       int count = 0;
 
       for (int i = 1; i < sheet.rows.length; i++) {
+        print("ROW FOUND: $i");
+
         final row = sheet.rows[i];
 
         if (row.length < 6) continue;
@@ -58,15 +67,15 @@ class ExcelImport {
         });
 
         count++;
+        print("INSERT DONE: $count");
       }
 
-      // 🔥 تسجيل الشهر كمستورد
+      print("IMPORT FINISHED: $count rows");
+
       await DBHelper.markMonthImported(month, year);
 
-      return true;
-
     } catch (e) {
-      return false;
+      print("IMPORT ERROR: $e");
     }
   }
 }
