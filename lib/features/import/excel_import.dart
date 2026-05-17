@@ -6,55 +6,67 @@ import '../../db/db_helper.dart';
 
 class ExcelImport {
 
-  static Future<void> importTimeline({
+  static Future<bool> importTimeline({
     required String month,
     required String year,
   }) async {
 
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['xlsx'],
-    );
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx'],
+      );
 
-    if (result == null || result.files.single.path == null) return;
+      if (result == null || result.files.single.path == null) {
+        return false;
+      }
 
-    final file = File(result.files.single.path!);
+      final file = File(result.files.single.path!);
+      final bytes = await file.readAsBytes();
 
-    final bytes = await file.readAsBytes(); // ✅ بدون تعليق
+      final excel = Excel.decodeBytes(bytes);
+      final sheet = excel.tables.values.first;
 
-    final excel = Excel.decodeBytes(bytes);
-    final sheet = excel.tables.values.first;
+      if (sheet == null) return false;
 
-    if (sheet == null) return;
+      // 🔥 حذف بيانات الشهر القديم (استبدال)
+      await DBHelper.deleteMonthData(month, year);
 
-    // 🔥 حذف الشهر إذا موجود (استبدال كامل)
-    await DBHelper.deleteMonthData(month, year);
+      int count = 0;
 
-    for (int i = 1; i < sheet.rows.length; i++) {
+      for (int i = 1; i < sheet.rows.length; i++) {
+        final row = sheet.rows[i];
 
-      final row = sheet.rows[i];
-      if (row.length < 6) continue;
+        if (row.length < 6) continue;
 
-      final number = row[1]?.value.toString().trim() ?? '';
-      final rank = row[2]?.value.toString().trim() ?? '';
-      final name = row[3]?.value.toString().trim() ?? '';
-      final unit = row[4]?.value.toString().trim() ?? '';
-      final status = row[5]?.value.toString().trim() ?? '';
+        final number = row[1]?.value.toString().trim() ?? '';
+        final rank = row[2]?.value.toString().trim() ?? '';
+        final name = row[3]?.value.toString().trim() ?? '';
+        final unit = row[4]?.value.toString().trim() ?? '';
+        final status = row[5]?.value.toString().trim() ?? '';
 
-      if (number.isEmpty && name.isEmpty) continue;
+        if (number.isEmpty && name.isEmpty) continue;
 
-      await DBHelper.insertTimeline({
-        'number': number,
-        'rank': rank,
-        'name': name,
-        'unit': unit,
-        'status': status,
-        'month': month,
-        'year': year,
-      });
+        await DBHelper.insertTimeline({
+          'number': number,
+          'rank': rank,
+          'name': name,
+          'unit': unit,
+          'status': status,
+          'month': month,
+          'year': year,
+        });
+
+        count++;
+      }
+
+      // 🔥 تسجيل الشهر كمستورد
+      await DBHelper.markMonthImported(month, year);
+
+      return true;
+
+    } catch (e) {
+      return false;
     }
-
-    // ✅ تسجيل الشهر
-    await DBHelper.markMonthImported(month, year);
   }
 }
