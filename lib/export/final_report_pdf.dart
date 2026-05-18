@@ -1,12 +1,11 @@
 import 'dart:io';
-import 'package:pdf/pdf.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:printing/printing.dart'; // حاسمة جداً لتحويل الـ HTML إلى PDF رسمي
 
 class FinalReportPdf {
 
+  /// دالة التصدير الذكية بصيغة ملف ويب رسمي قابل للطباعة الفورية
   static Future<String> export({
     required List<String> months,
     required List<Map<String, dynamic>> people,
@@ -16,20 +15,17 @@ class FinalReportPdf {
     bool shareFile = false,
   }) async {
 
-    // 1. تحديد اتجاه الصفحة ديناميكياً بناءً على عدد الأشهر
-    String pageOrientation = "portrait";
-    if (months.length > 5) {
-      pageOrientation = "landscape";
-    }
+    // تحديد اتجاه الصفحة الافتراضي للطباعة بناءً على عدد الأشهر
+    String pageOrientation = months.length > 5 ? "landscape" : "portrait";
 
-    // استخراج بيانات المذكور
+    // استخراج بيانات المذكور الأول
     final Map<String, dynamic> person = people.isNotEmpty ? people.first : {};
     final String pNumber = person["number"]?.toString() ?? "-";
     final String pName = person["name"]?.toString() ?? "-";
     final String pRank = person["rank"]?.toString() ?? "-";
     final Map<dynamic, dynamic> monthsMap = (person["months"] ?? {}) as Map<dynamic, dynamic>;
 
-    // 2. بناء جدول الحالات ديناميكياً بصيغة HTML
+    // بناء جدول الأشهر والحالات ديناميكياً
     String monthsHeaders = "";
     String statusCells = "";
 
@@ -42,34 +38,49 @@ class FinalReportPdf {
       statusCells += "<td>$statusValue</td>";
     }
 
-    // 3. صياغة المستند الكامل بتقنية HTML5 و CSS3 لدعم اللغة العربية وتناسق المظهر العسكري
+    // صياغة التصميم العسكري الرسمي للمستند باستخدام HTML5 و CSS3 تضمن تفعيل زر الطباعة التلقائي
     final String htmlContent = """
     <!DOCTYPE html>
     <html dir="rtl" lang="ar">
     <head>
       <meta charset="UTF-8">
+      <title>تقرير سجل الحالة الدوري</title>
       <style>
-        @page { size: A4 $pageOrientation; margin: 20mm; }
-        body { font-family: system-ui, -apple-system, sans-serif; color: #000; padding: 10px; line-height: 1.6; }
+        @media print {
+          @page { size: A4 $pageOrientation; margin: 15mm; }
+          .no-print { display: none; }
+        }
+        body { font-family: system-ui, -apple-system, sans-serif; color: #000; padding: 20px; line-height: 1.6; background-color: #fff; }
         .text-center { text-align: center; }
-        .title { font-size: 22px; font-weight: bold; margin-bottom: 5px; }
-        .subtitle { font-size: 14px; margin-bottom: 25px; color: #333; }
+        .title { font-size: 24px; font-weight: bold; margin-bottom: 5px; color: #111; }
+        .subtitle { font-size: 14px; margin-bottom: 25px; color: #444; font-weight: bold; }
         
-        /* صندوق البيانات الأساسية */
-        .info-box { border: 1px solid #999; padding: 15px; margin-bottom: 25px; background-color: #fafafa; }
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; font-size: 14px; }
+        /* زر الطباعة العلوي للتسهيل على المستخدم */
+        .print-btn { 
+          background-color: #007bff; color: white; padding: 10px 20px; border: none; 
+          border-radius: 5px; font-size: 14px; cursor: pointer; font-weight: bold;
+          margin-bottom: 20px; display: inline-block; text-decoration: none;
+        }
         
-        /* تنسيق الجدول الرسمي */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 30px; }
-        th, td { border: 1px solid #000; padding: 10px; text-align: center; font-size: 13px; }
-        th { background-color: #f0f0f0; font-weight: bold; }
+        /* صندوق البيانات الأساسية خارج الجدول */
+        .info-box { border: 2px solid #000; padding: 15px; margin-bottom: 25px; background-color: #fff; }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; font-size: 15px; }
         
-        /* قطاع التواقيع */
-        .signature-section { display: flex; justify-content: space-between; margin-top: 50px; font-weight: bold; font-size: 14px; }
-        .footer-text { margin-top: 40px; border-top: 1px dashed #ccc; padding-top: 10px; font-size: 12px; color: #555; }
+        /* تنسيق الجدول الرسمي الرصين */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 40px; }
+        th, td { border: 2px solid #000; padding: 12px; text-align: center; font-size: 14px; }
+        th { background-color: #eaeaea; font-weight: bold; }
+        
+        /* قطاع التواقيع السفلي */
+        .signature-section { display: flex; justify-content: space-between; margin-top: 60px; font-weight: bold; font-size: 15px; }
+        .footer-text { margin-top: 50px; border-top: 1px dashed #000; padding-top: 15px; font-size: 13px; color: #333; }
       </style>
     </head>
     <body>
+
+      <div class="text-center no-print">
+        <button class="print-btn" onclick="window.print()">انقر هنا للحفظ بتنسيق PDF أو الطباعة المباشرة 📄</button>
+      </div>
 
       <div class="text-center">
         <div class="title">تقرير سجل الحالة الدوري</div>
@@ -81,7 +92,7 @@ class FinalReportPdf {
           <div>الرقم العسكري: $pNumber</div>
           <div>الرتبة: $pRank</div>
         </div>
-        <div style="font-weight: bold; font-size: 14px;">الاسم الكامل: $pName</div>
+        <div style="font-weight: bold; font-size: 15px; margin-top: 5px;">الاسم الكامل: $pName</div>
       </div>
 
       <table>
@@ -109,24 +120,19 @@ class FinalReportPdf {
     </html>
     """;
 
-    // 4. المحرك السحري: تحويل كود الـ HTML إلى ملف PDF رسمي باستخدام تعريفات الهاتف الذاتي
+    // 💾 حفظ التقرير بصيغة ملف ويب مستقل في ذاكرة التطبيق
     final dir = await getApplicationDocumentsDirectory();
-    final file = File("${dir.path}/status_report_${DateTime.now().millisecondsSinceEpoch}.pdf");
+    final file = File("${dir.path}/report_${DateTime.now().millisecondsSinceEpoch}.html");
     
-    // توليد بايتات الـ PDF مباشرة عبر محرك الطباعة النظامي (يدعم العربية تلقائياً بنسبة 100%)
-    final pdfBytes = await Printing.convertHtml(
-      html: htmlContent,
-      format: PdfPageFormat.a4,
-    );
-
-    await file.writeAsBytes(pdfBytes);
+    await file.writeAsString(htmlContent);
     final path = file.path;
 
-    // 📂 الفتح التلقائي والمشاركة
+    // 📂 فتح الملف تلقائياً بالمتصفح الافتراضي للهاتف
     if (autoOpen) {
       await OpenFile.open(path);
     }
 
+    // 📤 تفعيل خيار المشاركة
     if (shareFile) {
       await Share.shareXFiles([XFile(path)]);
     }
