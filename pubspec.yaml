@@ -59,3 +59,12 @@ flutter:
       fonts:
         - asset: assets/fonts/Cairo-Regular.ttf
 
+# تعريف مجلد الأصول العام
+  assets:
+    - assets/fonts/
+
+  # تعريف الخط المخصص للاستخدام البرمجي
+  fonts:
+    - family: Cairo
+      fonts:
+        - asset: assets/fonts/Cairo-Regular.ttf

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/excel_import_service.dart'; 
-import '../db/db_helper.dart'; // لجلب الكشوفات القديمة
+import '../db/db_helper.dart'; 
 
 class ImportScreen extends StatefulWidget {
   const ImportScreen({super.key});
@@ -14,7 +14,7 @@ class _ImportScreenState extends State<ImportScreen> {
   String message = 'اختر الشهر والسنة ثم استورد الملف';
   String selectedMonth = '1';
   String selectedYear = DateTime.now().year.toString();
-  List<Map<String, dynamic>> importedMonthsList = []; // قائمة لعرض الأشهر المستوردة
+  List<Map<String, dynamic>> importedMonthsList = []; 
 
   final List<String> months = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
   final List<String> years = List.generate(10, (index) => (2023 + index).toString());
@@ -22,10 +22,9 @@ class _ImportScreenState extends State<ImportScreen> {
   @override
   void initState() {
     super.initState();
-    _loadImportedMonths(); // جلب الكشوفات المستوردة فور فتح الشاشة
+    _loadImportedMonths(); 
   }
 
-  /// جلب تحديثات الأشهر المتواجدة في قاعدة البيانات
   Future<void> _loadImportedMonths() async {
     final data = await DBHelper.getImportedMonths();
     setState(() {
@@ -33,7 +32,6 @@ class _ImportScreenState extends State<ImportScreen> {
     });
   }
 
-  /// دالة بدء الاستيراد
   Future<void> startImport() async {
     setState(() {
       loading = true;
@@ -48,7 +46,7 @@ class _ImportScreenState extends State<ImportScreen> {
 
       if (result["success"] == true) {
         setState(() { message = 'تم الاستيراد بنجاح ✔'; });
-        _loadImportedMonths(); // تحديث القائمة السفلية تلقائياً
+        _loadImportedMonths(); 
       } else {
         setState(() { message = 'تنبيه: ${result["message"]} ⚠️'; });
       }
@@ -60,7 +58,6 @@ class _ImportScreenState extends State<ImportScreen> {
     }
   }
 
-  /// دالة حذف شهر مستورد بالخطأ
   Future<void> _deleteMonth(String month, String year) async {
     bool confirm = await showDialog(
       context: context,
@@ -78,7 +75,7 @@ class _ImportScreenState extends State<ImportScreen> {
       bool success = await ExcelImportService.deleteFullMonth(month, year);
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم حذف الكشف وتطهير السجلات بنجاح")));
-        _loadImportedMonths(); // إعادة تحديث الواجهة
+        _loadImportedMonths(); 
       }
     }
   }
@@ -94,7 +91,6 @@ class _ImportScreenState extends State<ImportScreen> {
             Text(message, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
             const SizedBox(height: 20),
             
-            // خيارات التحديد والاستيراد
             Row(
               children: [
                 Expanded(
@@ -119,10 +115,14 @@ class _ImportScreenState extends State<ImportScreen> {
             const SizedBox(height: 20),
             
             loading 
-              ? const CircularProgressIndicator()
-              : ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
-                ).build(context) ?? ElevatedButton(
+              ? const Column(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 10),
+                    Text("برجاء الانتظار، يتم معالجة ومزامنة البيانات...", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                )
+              : ElevatedButton(
                   onPressed: startImport,
                   style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
                   child: const Text('استيراد ملف جديد', style: TextStyle(fontSize: 16)),
@@ -132,13 +132,12 @@ class _ImportScreenState extends State<ImportScreen> {
             const Divider(thickness: 2),
             const SizedBox(height: 10),
             
-            // 📋 الجزء الجديد: عرض وإدارة الكشوفات المتواجدة بالنظام
             const Text("الكشوفات المستوردة حالياً بالنظام", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue)),
             const SizedBox(height: 10),
             
             Expanded(
               child: importedMonthsList.isEmpty
-                  ? const Center(child: Text("لا توجد كشوفات مستوردة سابقة. قاعدة البيانات فارغة."))
+                  ? const Center(child: Text("لا توجد كشوفات مستوردة سابقة."))
                   : ListView.builder(
                       itemCount: importedMonthsList.length,
                       itemBuilder: (context, index) {
@@ -154,7 +153,7 @@ class _ImportScreenState extends State<ImportScreen> {
                             subtitle: Text("تاريخ الاستيراد: ${item['imported_at']?.toString().split('T').first ?? '-'}"),
                             trailing: IconButton(
                               icon: const Icon(Icons.delete_forever, color: Colors.red, size: 28),
-                              onPressed: () => _deleteMonth(m, y), // استدعاء دالة الحذف والتغيير عند الخطأ
+                              onPressed: () => _deleteMonth(m, y), 
                             ),
                           ),
                         );

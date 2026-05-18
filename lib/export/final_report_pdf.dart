@@ -16,15 +16,13 @@ class FinalReportPdf {
 
     final pdf = pw.Document();
 
-    // 🎯 الحل النهائي للمربعات: تحميل ملف خط مدمج يدعم العربية بالكامل (تأكد من وجود الملف في مجلد الحزم)
+    // 🎯 تحميل ملف خط مدمج يدعم العربية لقطع دابر المربعات تماماً
     final fontData = await rootBundle.load("assets/fonts/Cairo-Regular.ttf");
     final ttf = pw.Font.ttf(fontData);
 
-    // إعداد التنسيقات الإلزامية بالخط المدمج لقطع دابر المربعات
     final arabicStyle = pw.TextStyle(font: ttf, fontSize: 13);
     final titleStyle = pw.TextStyle(font: ttf, fontSize: 18, fontWeight: pw.FontWeight.bold);
 
-    // تحديد اتجاه المستند تلقائياً
     PdfPageFormat pageFormat = months.length > 5 ? PdfPageFormat.a4.landscape : PdfPageFormat.a4.portrait;
 
     final person = people.isNotEmpty ? people.first : {};
@@ -36,14 +34,13 @@ class FinalReportPdf {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: pageFormat,
-        textDirection: pw.TextDirection.rtl, // اتجاه عام من اليمين لليسار
+        textDirection: pw.TextDirection.rtl, 
         build: (context) => [
           pw.Center(child: pw.Text("تقرير سجل الحالة الدوري", style: titleStyle)),
           pw.SizedBox(height: 10),
           if (headerText.isNotEmpty) pw.Center(child: pw.Text(headerText, style: arabicStyle)),
           pw.SizedBox(height: 20),
 
-          // صندوق البيانات الأساسية خارج الجدول المعالج من التداخل
           pw.Directionality(
             textDirection: pw.TextDirection.rtl,
             child: pw.Container(
@@ -73,13 +70,11 @@ class FinalReportPdf {
           ),
           pw.SizedBox(height: 20),
 
-          // الجدول الديناميكي الموزع
           pw.Directionality(
             textDirection: pw.TextDirection.rtl,
             child: pw.Table(
               border: pw.TableBorder.all(color: PdfColors.black, width: 1),
               children: [
-                // سطر الأشهر
                 pw.TableRow(
                   decoration: const pw.BoxDecoration(color: PdfColors.grey200),
                   children: months.map((m) => pw.Padding(
@@ -87,10 +82,8 @@ class FinalReportPdf {
                     child: pw.Center(child: pw.Text(m, style: arabicStyle)),
                   )).toList(),
                 ),
-                // سطر الحالات المكتشفة
                 pw.TableRow(
                   children: months.map((m) {
-                    // جلب الحالات المطابقة للشهر من تفاصيل قاعدة البيانات الخاصة بالشخص
                     String statusValue = "-";
                     for (var p in people) {
                       if (p["month"] == m) {
@@ -109,7 +102,6 @@ class FinalReportPdf {
           ),
           
           pw.SizedBox(height: 40),
-          // التواقيع السفلية الموزعة بالزوايا
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [

@@ -17,7 +17,6 @@ class DBHelper {
       path,
       version: 2,
       onCreate: (db, version) async {
-
         await db.execute('''
           CREATE TABLE timeline (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,28 +42,18 @@ class DBHelper {
     );
   }
 
-  // =======================
-  // INSERT
-  // =======================
   static Future<int> insertTimeline(Map<String, dynamic> data) async {
     final db = await database;
     return db.insert('timeline', data);
   }
 
-  // =======================
-  // GET ALL
-  // =======================
   static Future<List<Map<String, dynamic>>> getAllTimeline() async {
     final db = await database;
     return db.query('timeline', orderBy: 'id DESC');
   }
 
-  // =======================
-  // GET PERSON TIMELINE
-  // =======================
   static Future<List<Map<String, dynamic>>> getPersonTimeline(String number) async {
     final db = await database;
-
     return db.query(
       'timeline',
       where: 'number = ?',
@@ -73,12 +62,8 @@ class DBHelper {
     );
   }
 
-  // =======================
-  // DELETE MONTH
-  // =======================
   static Future<void> deleteMonthData(String month, String year) async {
     final db = await database;
-
     await db.delete(
       'timeline',
       where: 'month = ? AND year = ?',
@@ -86,12 +71,8 @@ class DBHelper {
     );
   }
 
-  // =======================
-  // MARK IMPORTED MONTH
-  // =======================
   static Future<void> markMonthImported(String month, String year) async {
     final db = await database;
-
     await db.insert('imported_months', {
       'month': month,
       'year': year,
@@ -99,9 +80,6 @@ class DBHelper {
     });
   }
 
-  // =======================
-  // GET IMPORTED MONTHS
-  // =======================
   static Future<List<Map<String, dynamic>>> getImportedMonths() async {
     final db = await database;
     return db.query('imported_months', orderBy: 'id DESC');
