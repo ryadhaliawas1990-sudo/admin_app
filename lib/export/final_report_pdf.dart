@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:flutter/services.dart'; // حاسمة لجلب الخط من الـ assets
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
@@ -19,140 +19,141 @@ class FinalReportPdf {
 
     final pdf = pw.Document();
 
-    // 1. تحميل خط القاهرة العربي من الـ assets وتفعيله كمحرك نصوص للـ PDF
+    // 🔬 الحماية الحرجة: جلب بايتات الخط العربي وإجبار النظام على استخدامها في كل النصوص
     final ByteData fontData = await rootBundle.load('assets/fonts/Cairo-Regular.ttf');
     final pw.Font arabicFont = pw.Font.ttf(fontData);
 
-    // 2. إنشاء نمط نصوص موحد يدعم العربية والاتجاه من اليمين إلى اليسار
-    final pw.TextStyle arabicStyle = pw.TextStyle(
-      font: arabicFont,
-      fontSize: 11,
-    );
+    // تجهيز التنسيقات الموحدة للخطوط
+    final pw.TextStyle titleStyle = pw.TextStyle(font: arabicFont, fontSize: 16, fontWeight: pw.FontWeight.bold);
+    final pw.TextStyle subTitleStyle = pw.TextStyle(font: arabicFont, fontSize: 11, fontWeight: pw.FontWeight.normal);
+    final pw.TextStyle tableHeaderStyle = pw.TextStyle(font: arabicFont, fontSize: 11, fontWeight: pw.FontWeight.bold);
+    final pw.TextStyle tableBodyStyle = pw.TextStyle(font: arabicFont, fontSize: 10, fontWeight: pw.FontWeight.normal);
+
+    // 📐 ميزة التكيف الديناميكي: إذا زاد عدد الأشهر عن 5 أشهُر، تقلب الصفحة تلقائياً إلى العرض (Landscape)
+    PdfPageFormat dynamicFormat = PdfPageFormat.a4.portrait;
+    if (months.length > 5) {
+      dynamicFormat = PdfPageFormat.a4.landscape;
+    }
+
+    // نأخذ بيانات المذكور الأول (بما أن التقرير مخصص لسجل حالة فرد محدد)
+    final Map<String, dynamic> person = people.isNotEmpty ? people.first : {};
+    final String pNumber = person["number"]?.toString() ?? "-";
+    final String pName = person["name"]?.toString() ?? "-";
+    final String pRank = person["rank"]?.toString() ?? "-";
+    final Map<dynamic, dynamic> monthsMap = (person["months"] ?? {}) as Map<dynamic, dynamic>;
 
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4.landscape,
-        // تفعيل اتجاه الكتابة من اليمين إلى اليسار للصفحة بأكملها
-        textDirection: pw.TextDirection.rtl, 
+        pageFormat: dynamicFormat,
+        textDirection: pw.TextDirection.rtl, // توجيه كامل المستند من اليمين لليسار
         build: (context) {
-
           return [
 
-            // 🟢 العنوان الرئيسي للتقرير
+            // 1. ترويسة التقرير والنص اليدوي الأعلى
             pw.Center(
               child: pw.Column(
                 children: [
-                  pw.Text(
-                    "تقرير المباينة النهائي",
-                    style: pw.TextStyle(
-                      font: arabicFont,
-                      fontSize: 18,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-
-                  if (headerText.isNotEmpty) ...[
-                    pw.SizedBox(height: 5),
-                    pw.Text(
-                      headerText,
-                      style: pw.TextStyle(font: arabicFont, fontSize: 11),
-                    ),
-                  ],
+                  pw.Text("تقرير سجل الحالة الدوري", style: titleStyle),
+                  pw.SizedBox(height: 5),
+                  if (headerText.isNotEmpty)
+                    pw.Text(headerText, style: subTitleStyle, textAlign: pw.TextAlign.center),
                 ],
               ),
             ),
 
-            pw.SizedBox(height: 15),
+            pw.SizedBox(height: 20),
 
-            // 🧾 جدول البيانات المحصن والمعكوس الاتجاه
+            // 2. قطاع البيانات الأساسية (خارج الجدول - يمين الصفحة)
+            pw.Container(
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: PdfColors.grey300, width: 0.5),
+                padding: const pw.EdgeInsets.all(10),
+              ),
+              child: pw.Column(
+                cross: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text("الرقم العسكري: $pNumber", style: tableHeaderStyle),
+                      pw.Text("الرتبة: $pRank", style: tableHeaderStyle),
+                    ],
+                  ),
+                  pw.SizedBox(height: 8),
+                  pw.Text("الاسم الكامل: $pName", style: tableHeaderStyle),
+                ],
+              ),
+            ),
+
+            pw.SizedBox(height: 20),
+
+            // 3. الجدول الديناميكي المطور (الأشهر والحالات)
             pw.Table(
-              border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
-              columnWidths: {
-                0: const pw.FixedColumnWidth(40),  // الرقم
-                1: const pw.FixedColumnWidth(120), // الاسم
-                2: const pw.FixedColumnWidth(60),  // الرتبة
-              },
+              border: pw.TableBorder.all(color: PdfColors.black, width: 0.8),
               children: [
-
-                // ترويسة الجدول (العناوين) مرتبة من اليمين لليسار
+                
+                // سطر العناوين (الأشهر المحددة)
                 pw.TableRow(
                   decoration: const pw.BoxDecoration(color: PdfColors.grey200),
-                  children: [
-                    pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Center(child: pw.Text("الرقم", style: arabicStyle))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Center(child: pw.Text("الاسم", style: arabicStyle))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Center(child: pw.Text("الرتبة", style: arabicStyle))),
-                    ...months.map((m) => pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Center(child: pw.Text(m, style: arabicStyle)),
-                        )),
-                  ],
+                  children: months.map((m) => pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                    child: pw.Center(child: pw.Text(m, style: tableHeaderStyle)),
+                  )).toList(),
                 ),
 
-                // بناء صفوف الحالات والأشهر ديناميكياً
-                ...people.map((p) {
-                  final monthsMap = (p["months"] ?? {}) as Map<String, dynamic>;
+                // سطر البيانات (حالة المذكور تحت كل شهر)
+                pw.TableRow(
+                  children: months.map((m) {
+                    // حماية من قيم null المسببة للخلل في الصورة
+                    String statusValue = monthsMap[m]?.toString() ?? "-";
+                    if (statusValue.trim().toLowerCase() == 'null' || statusValue.trim().isEmpty) {
+                      statusValue = "-";
+                    }
+                    return pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                      child: pw.Center(child: pw.Text(statusValue, style: tableBodyStyle)),
+                    );
+                  }).toList(),
+                ),
 
-                  return pw.TableRow(
-                    children: [
-                      pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Center(child: pw.Text(p["number"] ?? "", style: arabicStyle))),
-                      pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Container(alignment: pw.Alignment.centerRight, child: pw.Text(p["name"] ?? "", style: arabicStyle))),
-                      pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Center(child: pw.Text(p["rank"] ?? "", style: arabicStyle))),
-
-                      ...months.map((m) {
-                        return pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Center(
-                            child: pw.Text(
-                              (monthsMap[m] ?? "-").toString(),
-                              style: arabicStyle,
-                            ),
-                          ),
-                        );
-                      }),
-                    ],
-                  );
-                }),
               ],
             ),
 
-            pw.SizedBox(height: 25),
+            pw.SizedBox(height: 35),
 
-            // ✍️ قطاع التواقيع والإعتماد الإداري
+            // 4. التواقيع الإدارية الموزعة بدقة متناهية في الزوايا السفلية
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text("مدير القسم", style: arabicStyle),
-                pw.Text("المراجعة", style: arabicStyle),
-                pw.Text("الاعتماد", style: arabicStyle),
+                pw.Text("توقيع مدير القسم: ....................", style: subTitleStyle),
+                pw.Text("توقيع المراجعة: ....................", style: subTitleStyle),
+                pw.Text("توقيع الاعتماد: ....................", style: subTitleStyle),
               ],
             ),
 
+            // 5. النص اليدوي السفلي إن وجد
             if (footerText.isNotEmpty) ...[
-              pw.SizedBox(height: 15),
+              pw.SizedBox(height: 25),
               pw.Divider(color: PdfColors.grey300, thickness: 0.5),
               pw.SizedBox(height: 5),
-              pw.Center(child: pw.Text(footerText, style: arabicStyle)),
+              pw.Center(child: pw.Text(footerText, style: subTitleStyle)),
             ],
+
           ];
         },
       ),
     );
 
-    // 💾 حفظ الملف في ذاكرة الجهاز المؤقتة بأمان واحترافية
+    // عملية الحفظ والتصدير والفتح الآمن
     final dir = await getApplicationDocumentsDirectory();
-    final file = File(
-      "${dir.path}/report_${DateTime.now().millisecondsSinceEpoch}.pdf",
-    );
-
+    final file = File("${dir.path}/status_report_${DateTime.now().millisecondsSinceEpoch}.pdf");
     await file.writeAsBytes(await pdf.save());
     final path = file.path;
 
-    // 📂 الفتح التلقائي للمستند بعد التصدير
     if (autoOpen) {
       await OpenFile.open(path);
     }
 
-    // 📤 تفعيل نظام المشاركة عبر التطبيقات الأخرى
     if (shareFile) {
       await Share.shareXFiles([XFile(path)]);
     }
