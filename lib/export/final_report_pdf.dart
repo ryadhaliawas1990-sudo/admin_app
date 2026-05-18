@@ -1,10 +1,9 @@
 import 'dart:io';
-import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:printing/printing.dart'; // حاسمة جداً لتحويل الـ HTML إلى PDF رسمي
 
 class FinalReportPdf {
 
@@ -17,139 +16,113 @@ class FinalReportPdf {
     bool shareFile = false,
   }) async {
 
-    final pdf = pw.Document();
-
-    // 🔬 الحماية الحرجة: جلب بايتات الخط العربي وإجبار النظام على استخدامها في كل النصوص
-    final ByteData fontData = await rootBundle.load('assets/fonts/Cairo-Regular.ttf');
-    final pw.Font arabicFont = pw.Font.ttf(fontData);
-
-    // تجهيز التنسيقات الموحدة للخطوط
-    final pw.TextStyle titleStyle = pw.TextStyle(font: arabicFont, fontSize: 16, fontWeight: pw.FontWeight.bold);
-    final pw.TextStyle subTitleStyle = pw.TextStyle(font: arabicFont, fontSize: 11, fontWeight: pw.FontWeight.normal);
-    final pw.TextStyle tableHeaderStyle = pw.TextStyle(font: arabicFont, fontSize: 11, fontWeight: pw.FontWeight.bold);
-    final pw.TextStyle tableBodyStyle = pw.TextStyle(font: arabicFont, fontSize: 10, fontWeight: pw.FontWeight.normal);
-
-    // 📐 ميزة التكيف الديناميكي: إذا زاد عدد الأشهر عن 5 أشهُر، تقلب الصفحة تلقائياً إلى العرض (Landscape)
-    PdfPageFormat dynamicFormat = PdfPageFormat.a4.portrait;
+    // 1. تحديد اتجاه الصفحة ديناميكياً بناءً على عدد الأشهر
+    String pageOrientation = "portrait";
     if (months.length > 5) {
-      dynamicFormat = PdfPageFormat.a4.landscape;
+      pageOrientation = "landscape";
     }
 
-    // نأخذ بيانات المذكور الأول (بما أن التقرير مخصص لسجل حالة فرد محدد)
+    // استخراج بيانات المذكور
     final Map<String, dynamic> person = people.isNotEmpty ? people.first : {};
     final String pNumber = person["number"]?.toString() ?? "-";
     final String pName = person["name"]?.toString() ?? "-";
     final String pRank = person["rank"]?.toString() ?? "-";
     final Map<dynamic, dynamic> monthsMap = (person["months"] ?? {}) as Map<dynamic, dynamic>;
 
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: dynamicFormat,
-        textDirection: pw.TextDirection.rtl, // توجيه كامل المستند من اليمين لليسار
-        build: (context) {
-          return [
+    // 2. بناء جدول الحالات ديناميكياً بصيغة HTML
+    String monthsHeaders = "";
+    String statusCells = "";
 
-            // 1. ترويسة التقرير والنص اليدوي الأعلى
-            pw.Center(
-              child: pw.Column(
-                children: [
-                  pw.Text("تقرير سجل الحالة الدوري", style: titleStyle),
-                  pw.SizedBox(height: 5),
-                  if (headerText.isNotEmpty)
-                    pw.Text(headerText, style: subTitleStyle, textAlign: pw.TextAlign.center),
-                ],
-              ),
-            ),
+    for (var m in months) {
+      monthsHeaders += "<th>$m</th>";
+      String statusValue = monthsMap[m]?.toString() ?? "-";
+      if (statusValue.trim().toLowerCase() == 'null' || statusValue.trim().isEmpty) {
+        statusValue = "-";
+      }
+      statusCells += "<td>$statusValue</td>";
+    }
 
-            pw.SizedBox(height: 20),
+    // 3. صياغة المستند الكامل بتقنية HTML5 و CSS3 لدعم اللغة العربية وتناسق المظهر العسكري
+    final String htmlContent = """
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        @page { size: A4 $pageOrientation; margin: 20mm; }
+        body { font-family: system-ui, -apple-system, sans-serif; color: #000; padding: 10px; line-height: 1.6; }
+        .text-center { text-align: center; }
+        .title { font-size: 22px; font-weight: bold; margin-bottom: 5px; }
+        .subtitle { font-size: 14px; margin-bottom: 25px; color: #333; }
+        
+        /* صندوق البيانات الأساسية */
+        .info-box { border: 1px solid #999; padding: 15px; margin-bottom: 25px; background-color: #fafafa; }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; font-size: 14px; }
+        
+        /* تنسيق الجدول الرسمي */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 30px; }
+        th, td { border: 1px solid #000; padding: 10px; text-align: center; font-size: 13px; }
+        th { background-color: #f0f0f0; font-weight: bold; }
+        
+        /* قطاع التواقيع */
+        .signature-section { display: flex; justify-content: space-between; margin-top: 50px; font-weight: bold; font-size: 14px; }
+        .footer-text { margin-top: 40px; border-top: 1px dashed #ccc; padding-top: 10px; font-size: 12px; color: #555; }
+      </style>
+    </head>
+    <body>
 
-            // 2. قطاع البيانات الأساسية (خارج الجدول - يمين الصفحة)
-            pw.Container(
-              decoration: pw.BoxDecoration(
-                border: pw.Border.all(color: PdfColors.grey300, width: 0.5),
-                padding: const pw.EdgeInsets.all(10),
-              ),
-              child: pw.Column(
-                cross: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text("الرقم العسكري: $pNumber", style: tableHeaderStyle),
-                      pw.Text("الرتبة: $pRank", style: tableHeaderStyle),
-                    ],
-                  ),
-                  pw.SizedBox(height: 8),
-                  pw.Text("الاسم الكامل: $pName", style: tableHeaderStyle),
-                ],
-              ),
-            ),
+      <div class="text-center">
+        <div class="title">تقرير سجل الحالة الدوري</div>
+        <div class="subtitle">$headerText</div>
+      </div>
 
-            pw.SizedBox(height: 20),
+      <div class="info-box">
+        <div class="info-row">
+          <div>الرقم العسكري: $pNumber</div>
+          <div>الرتبة: $pRank</div>
+        </div>
+        <div style="font-weight: bold; font-size: 14px;">الاسم الكامل: $pName</div>
+      </div>
 
-            // 3. الجدول الديناميكي المطور (الأشهر والحالات)
-            pw.Table(
-              border: pw.TableBorder.all(color: PdfColors.black, width: 0.8),
-              children: [
-                
-                // سطر العناوين (الأشهر المحددة)
-                pw.TableRow(
-                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
-                  children: months.map((m) => pw.Padding(
-                    padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                    child: pw.Center(child: pw.Text(m, style: tableHeaderStyle)),
-                  )).toList(),
-                ),
+      <table>
+        <thead>
+          <tr>
+            $monthsHeaders
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            $statusCells
+          </tr>
+        </tbody>
+      </table>
 
-                // سطر البيانات (حالة المذكور تحت كل شهر)
-                pw.TableRow(
-                  children: months.map((m) {
-                    // حماية من قيم null المسببة للخلل في الصورة
-                    String statusValue = monthsMap[m]?.toString() ?? "-";
-                    if (statusValue.trim().toLowerCase() == 'null' || statusValue.trim().isEmpty) {
-                      statusValue = "-";
-                    }
-                    return pw.Padding(
-                      padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                      child: pw.Center(child: pw.Text(statusValue, style: tableBodyStyle)),
-                    );
-                  }).toList(),
-                ),
+      <div class="signature-section">
+        <div>توقيع مدير القسم: ....................</div>
+        <div>توقيع المراجعة: ....................</div>
+        <div>توقيع الاعتماد: ....................</div>
+      </div>
 
-              ],
-            ),
+      ${footerText.isNotEmpty ? '<div class="text-center footer-text">' + footerText + '</div>' : ''}
 
-            pw.SizedBox(height: 35),
+    </body>
+    </html>
+    """;
 
-            // 4. التواقيع الإدارية الموزعة بدقة متناهية في الزوايا السفلية
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Text("توقيع مدير القسم: ....................", style: subTitleStyle),
-                pw.Text("توقيع المراجعة: ....................", style: subTitleStyle),
-                pw.Text("توقيع الاعتماد: ....................", style: subTitleStyle),
-              ],
-            ),
-
-            // 5. النص اليدوي السفلي إن وجد
-            if (footerText.isNotEmpty) ...[
-              pw.SizedBox(height: 25),
-              pw.Divider(color: PdfColors.grey300, thickness: 0.5),
-              pw.SizedBox(height: 5),
-              pw.Center(child: pw.Text(footerText, style: subTitleStyle)),
-            ],
-
-          ];
-        },
-      ),
-    );
-
-    // عملية الحفظ والتصدير والفتح الآمن
+    // 4. المحرك السحري: تحويل كود الـ HTML إلى ملف PDF رسمي باستخدام تعريفات الهاتف الذاتي
     final dir = await getApplicationDocumentsDirectory();
     final file = File("${dir.path}/status_report_${DateTime.now().millisecondsSinceEpoch}.pdf");
-    await file.writeAsBytes(await pdf.save());
+    
+    // توليد بايتات الـ PDF مباشرة عبر محرك الطباعة النظامي (يدعم العربية تلقائياً بنسبة 100%)
+    final pdfBytes = await Printing.convertHtml(
+      html: htmlContent,
+      format: PdfPageFormat.a4,
+    );
+
+    await file.writeAsBytes(pdfBytes);
     final path = file.path;
 
+    // 📂 الفتح التلقائي والمشاركة
     if (autoOpen) {
       await OpenFile.open(path);
     }
