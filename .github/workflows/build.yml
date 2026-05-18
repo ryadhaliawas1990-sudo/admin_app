@@ -1,7 +1,6 @@
 cat << 'EOF' > .github/workflows/build.yml
 name: Flutter Build APK
 
-# سيعمل هذا الإجراء تلقائياً عند دفع (Push) أي كود لفرع main أو master
 on:
   push:
     branches: [ main, master ]
@@ -28,24 +27,22 @@ jobs:
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.x' # سيجلب أحدث إصدار مستقر من الجيل الثالث متوافق مع مشروعك
+        flutter-version: '3.x'
         channel: 'stable'
-        cache: true # لتسريع البناء في المرات القادمة
+        cache: true
 
     # 4. تحميل المكتبات المتواجدة في pubspec.yaml
     - name: Install dependencies
       run: flutter pub get
 
-    # 5. بناء ملف الـ APK (بدون التوقيع الرقمي للتجربة السريعة)
+    # 5. بناء ملف الـ APK
     - name: Build APK
       run: flutter build apk --debug
 
-    # 6. رفع ملف الـ APK الناتج لكي تقوم بتحميله إلى هاتفك فوراً
+    # 6. رفع ملف الـ APK الناتج والمحدث بالمليمتر بدون مسافات خاطئة
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: admin-app-debug-apk
-        path: build/app/outputs/flutter-apk/app-debug.pdf # أو app-debug.apk حسب مخرجات النظام
-        # التعديل أدناه يضمن التقاط الملف بالشكل الصحيح:
-        path: build/app/outputs/bundle/release/ app-debug.apk
+        path: build/app/outputs/flutter-apk/app-debug.apk
 EOF
