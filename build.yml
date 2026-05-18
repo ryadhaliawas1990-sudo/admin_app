@@ -1,0 +1,51 @@
+cat << 'EOF' > .github/workflows/build.yml
+name: Flutter Build APK
+
+# سيعمل هذا الإجراء تلقائياً عند دفع (Push) أي كود لفرع main أو master
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. سحب الكود من المستودع
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2. تثبيت جافا (مهمة لبناء الأندرويد)
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    # 3. تثبيت الفلاتر سحابياً
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.x' # سيجلب أحدث إصدار مستقر من الجيل الثالث متوافق مع مشروعك
+        channel: 'stable'
+        cache: true # لتسريع البناء في المرات القادمة
+
+    # 4. تحميل المكتبات المتواجدة في pubspec.yaml
+    - name: Install dependencies
+      run: flutter pub get
+
+    # 5. بناء ملف الـ APK (بدون التوقيع الرقمي للتجربة السريعة)
+    - name: Build APK
+      run: flutter build apk --debug
+
+    # 6. رفع ملف الـ APK الناتج لكي تقوم بتحميله إلى هاتفك فوراً
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: admin-app-debug-apk
+        path: build/app/outputs/flutter-apk/app-debug.pdf # أو app-debug.apk حسب مخرجات النظام
+        # التعديل أدناه يضمن التقاط الملف بالشكل الصحيح:
+        path: build/app/outputs/bundle/release/ app-debug.apk
+EOF
