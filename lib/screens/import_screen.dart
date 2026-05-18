@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-// استدعاء ملف الخدمة المحصن الجديد (تأكد من صحة المسار حسب مجلداتك)
 import '../services/excel_import_service.dart'; 
+import '../db/db_helper.dart'; // لجلب الكشوفات القديمة
 
 class ImportScreen extends StatefulWidget {
   const ImportScreen({super.key});
@@ -14,17 +14,26 @@ class _ImportScreenState extends State<ImportScreen> {
   String message = 'اختر الشهر والسنة ثم استورد الملف';
   String selectedMonth = '1';
   String selectedYear = DateTime.now().year.toString();
+  List<Map<String, dynamic>> importedMonthsList = []; // قائمة لعرض الأشهر المستوردة
 
-  final List<String> months = [
-    '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12',
-  ];
+  final List<String> months = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+  final List<String> years = List.generate(10, (index) => (2023 + index).toString());
 
-  final List<String> years = List.generate(
-    10,
-    (index) => (2023 + index).toString(),
-  );
+  @override
+  void initState() {
+    super.initState();
+    _loadImportedMonths(); // جلب الكشوفات المستوردة فور فتح الشاشة
+  }
 
-  /// 🚀 دالة بدء الاستيراد الآمنة والمعدلة لمنع تجميد المؤشر
+  /// جلب تحديثات الأشهر المتواجدة في قاعدة البيانات
+  Future<void> _loadImportedMonths() async {
+    final data = await DBHelper.getImportedMonths();
+    setState(() {
+      importedMonthsList = data;
+    });
+  }
+
+  /// دالة بدء الاستيراد
   Future<void> startImport() async {
     setState(() {
       loading = true;
@@ -32,128 +41,126 @@ class _ImportScreenState extends State<ImportScreen> {
     });
 
     try {
-      // 🔗 ربط مباشر مع الدالة المطورة وتمرير التاريخ المختار لمنع التكرار اللامحدود
       final Map<String, dynamic> result = await ExcelImportService.pickAndReadExcel(
         selectedMonth,
         selectedYear,
       );
 
-      // 🔍 فحص حالة النتيجة الفعلية وبناء الواجهة بناءً عليها
       if (result["success"] == true) {
-        setState(() {
-          message = 'تم الاستيراد بنجاح ✔\n${result["message"]}';
-        });
+        setState(() { message = 'تم الاستيراد بنجاح ✔'; });
+        _loadImportedMonths(); // تحديث القائمة السفلية تلقائياً
       } else {
-        setState(() {
-          message = 'تنبيه: ${result["message"]} ⚠️';
-        });
+        setState(() { message = 'تنبيه: ${result["message"]} ⚠️'; });
       }
 
     } catch (e) {
-      setState(() {
-        message = 'حدث خطأ غير متوقع أثناء الاستيراد ❌';
-      });
-      print("🚨 خطأ في واجهة الاستيراد: $e");
+      setState(() { message = 'حدث خطأ غير متوقع ❌'; });
     } finally {
-      // 🛡️ حماية حتمية: إيقاف مؤشر التحميل فوراً تحت أي ظرف (سواء نجاح، خطأ، أو إلغاء)
-      setState(() {
-        loading = false;
-      });
+      setState(() { loading = false; });
+    }
+  }
+
+  /// دالة حذف شهر مستورد بالخطأ
+  Future<void> _deleteMonth(String month, String year) async {
+    bool confirm = await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("تأكيد الحذف"),
+        content: Text("هل أنت متأكد من حذف كافة بيانات كشف شهر $month لعام $year؟"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("إلغاء")),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("حذف", style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    ) ?? false;
+
+    if (confirm) {
+      bool success = await ExcelImportService.deleteFullMonth(month, year);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم حذف الكشف وتطهير السجلات بنجاح")));
+        _loadImportedMonths(); // إعادة تحديث الواجهة
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('استيراد Excel'),
-      ),
+      appBar: AppBar(title: const Text('استيراد وإدارة ملفات Excel')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // نص حالة الاستيراد والرسائل الإدارية
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: loading ? Colors.blue.withOpacity(0.1) : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 30),
-
-            // اختيار الشهر
-            DropdownButtonFormField<String>(
-              value: selectedMonth,
-              decoration: const InputDecoration(
-                labelText: 'الشهر',
-                border: OutlineInputBorder(),
-              ),
-              items: months.map((m) {
-                return DropdownMenuItem(
-                  value: m,
-                  child: Text(m),
-                );
-              }).toList(),
-              onChanged: (v) {
-                if (v != null) {
-                  setState(() {
-                    selectedMonth = v;
-                  });
-                }
-              },
+            Text(message, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+            const SizedBox(height: 20),
+            
+            // خيارات التحديد والاستيراد
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: selectedMonth,
+                    decoration: const InputDecoration(labelText: 'الشهر', border: OutlineInputBorder()),
+                    items: months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+                    onChanged: (v) => setState(() { if (v != null) selectedMonth = v; }),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: selectedYear,
+                    decoration: const InputDecoration(labelText: 'السنة', border: OutlineInputBorder()),
+                    items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
+                    onChanged: (v) => setState(() { if (v != null) selectedYear = v; }),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
-
-            // اختيار السنة
-            DropdownButtonFormField<String>(
-              value: selectedYear,
-              decoration: const InputDecoration(
-                labelText: 'السنة',
-                border: OutlineInputBorder(),
-              ),
-              items: years.map((y) {
-                return DropdownMenuItem(
-                  value: y,
-                  child: Text(y),
-                );
-              }).toList(),
-              onChanged: (v) {
-                if (v != null) {
-                  setState(() {
-                    selectedYear = v;
-                  });
-                }
-              },
+            
+            loading 
+              ? const CircularProgressIndicator()
+              : ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50),
+                ).build(context) ?? ElevatedButton(
+                  onPressed: startImport,
+                  style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
+                  child: const Text('استيراد ملف جديد', style: TextStyle(fontSize: 16)),
+                ),
+            
+            const SizedBox(height: 20),
+            const Divider(thickness: 2),
+            const SizedBox(height: 10),
+            
+            // 📋 الجزء الجديد: عرض وإدارة الكشوفات المتواجدة بالنظام
+            const Text("الكشوفات المستوردة حالياً بالنظام", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue)),
+            const SizedBox(height: 10),
+            
+            Expanded(
+              child: importedMonthsList.isEmpty
+                  ? const Center(child: Text("لا توجد كشوفات مستوردة سابقة. قاعدة البيانات فارغة."))
+                  : ListView.builder(
+                      itemCount: importedMonthsList.length,
+                      itemBuilder: (context, index) {
+                        final item = importedMonthsList[index];
+                        final m = item['month'] ?? '-';
+                        final y = item['year'] ?? '-';
+                        return Card(
+                          elevation: 2,
+                          margin: const EdgeInsets.symmetric(vertical: 5),
+                          child: ListTile(
+                            leading: const Icon(Icons.table_view, color: Colors.green),
+                            title: Text("كشف شهر: $m / سنة: $y", style: const TextStyle(fontWeight: FontWeight.bold)),
+                            subtitle: Text("تاريخ الاستيراد: ${item['imported_at']?.toString().split('T').first ?? '-'}"),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete_forever, color: Colors.red, size: 28),
+                              onPressed: () => _deleteMonth(m, y), // استدعاء دالة الحذف والتغيير عند الخطأ
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ),
-            const SizedBox(height: 30),
-
-            // تحكّم ذكي بمؤشر التحميل والزر
-            loading
-                ? const Column(
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 10),
-                      Text("برجاء الانتظار، يتم معالجة ومزامنة البيانات...", 
-                        style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    ],
-                  )
-                : ElevatedButton(
-                    onPressed: startImport,
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 50), // زر عريض يسهل النقر عليه بالهاتف
-                    ),
-                    child: const Text(
-                      'استيراد الملف',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ),
           ],
         ),
       ),
