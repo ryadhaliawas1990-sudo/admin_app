@@ -30,11 +30,13 @@ jobs:
     - name: Install dependencies
       run: flutter pub get
 
+    # 🎯 التعديل الحاسم: بناء نسخة التوزيع النهائي المضغوطة وتقسيمها حسب نوع المعالج لتخفيض الحجم لأقصى حد
     - name: Build APK
-      run: flutter build apk --debug
+      run: flutter build apk --release --split-per-abi
 
+    # 🚀 رفع النسخ الرشيقة الناتجة (ستجد ملفات منفصلة اختر منها app-arm64-v8a-release.apk لهاتفك)
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: admin-app-debug-apk
-        path: build/app/outputs/flutter-apk/app-debug.apk
+        name: admin-app-release-apk
+        path: build/app/outputs/flutter-apk/*-release.apk
