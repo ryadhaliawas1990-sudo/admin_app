@@ -49,21 +49,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # تعريف مجلدات ملفات الميديا والبيانات
+  # 🎯 تم دمج وتطهير الأصول والخطوط في مكان واحد رسمي بدون أي تكرار
   assets:
     - assets/fonts/
 
-  # تعريف الخطوط كـ محركات نظام رسمية (حل مشكلة تقطيع الحروف العربية في الـ PDF)
-  fonts:
-    - family: Cairo
-      fonts:
-        - asset: assets/fonts/Cairo-Regular.ttf
-
-# تعريف مجلد الأصول العام
-  assets:
-    - assets/fonts/
-
-  # تعريف الخط المخصص للاستخدام البرمجي
   fonts:
     - family: Cairo
       fonts:
