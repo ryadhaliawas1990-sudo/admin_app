@@ -19,7 +19,7 @@ class FinalReportPdf {
     String statusCells = "";
 
     for (var m in months) {
-      monthsHeaders += "<th style='border: 1px solid #000; padding: 10px; background-color: #f5f5f5;'>$m</th>";
+      monthsHeaders += "<th style='border: 1px solid #000; padding: 12px; background-color: #f5f5f5; font-size: 16px;'>$m</th>";
       
       String statusValue = "-";
       for (var p in people) {
@@ -28,39 +28,37 @@ class FinalReportPdf {
           break;
         }
       }
-      statusCells += "<td style='border: 1px solid #000; padding: 10px; text-align: center; font-weight: bold;'>$statusValue</td>";
+      statusCells += "<td style='border: 1px solid #000; padding: 12px; text-align: center; font-size: 16px; font-weight: bold;'>$statusValue</td>";
     }
 
-    // 🎨 تم جلب خط Cairo مباشرة من سيرفرات جوجل لحسم مشكلة المربعات في الأندرويد نهائياً
+    // 🎨 استخدام الخطوط الأساسية للنظام (serif) والمجربة على معالجات شاومي لضمان الحروف المتصلة
     final String htmlContent = """
     <!DOCTYPE html>
     <html dir="rtl" lang="ar">
     <head>
       <meta charset="utf-8">
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
       <style>
         body { 
-          font-family: 'Cairo', sans-serif; 
+          font-family: serif, sans-serif; 
           margin: 40px; 
           color: #000;
           background-color: #fff;
+          direction: rtl;
         }
         .title { 
           text-align: center; 
-          font-size: 26px; 
+          font-size: 28px; 
           font-weight: bold; 
           margin-bottom: 5px;
         }
         .subtitle { 
           text-align: center; 
-          font-size: 16px; 
+          font-size: 18px; 
           margin-bottom: 30px;
-          color: #444;
+          color: #333;
         }
         .info-box { 
-          border: 2px solid #000; 
+          border: 3px solid #000; 
           padding: 15px; 
           margin-bottom: 30px;
           line-height: 1.8;
@@ -70,20 +68,20 @@ class FinalReportPdf {
           justify-content: space-between; 
         }
         .info-item { 
-          font-size: 16px; 
+          font-size: 18px; 
           width: 48%;
         }
         table { 
           width: 100%; 
           border-collapse: collapse; 
           margin-top: 25px; 
-          font-size: 16px;
         }
         .signatures { 
           display: flex; 
           justify-content: space-between; 
-          margin-top: 80px; 
-          font-size: 16px;
+          margin-top: 100px; 
+          font-size: 18px;
+          font-weight: bold;
         }
       </style>
     </head>
@@ -118,10 +116,10 @@ class FinalReportPdf {
 
       <div class="signatures">
         <div>توقيع مدير القسم: ....................</div>
-        <div>توقيع الاعتماد الحتمي: ....................</div>
+        <div>توقيع الاعتماد الرسمي: ....................</div>
       </div>
 
-      ${footerText.isNotEmpty ? "<div style='text-align: center; margin-top: 60px; font-size: 14px; border-top: 1px dashed #ccc; padding-top: 10px;'>$footerText</div>" : ""}
+      ${footerText.isNotEmpty ? "<div style='text-align: center; margin-top: 80px; font-size: 14px; border-top: 1px dashed #000; padding-top: 10px;'>$footerText</div>" : ""}
 
     </body>
     </html>
@@ -132,7 +130,7 @@ class FinalReportPdf {
         format: format,
         html: htmlContent,
       ),
-      name: 'تقرير_عسكري_$pNumber',
+      name: 'تقرير_الحالة_$pNumber',
     );
   }
 }

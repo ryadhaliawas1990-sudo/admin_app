@@ -1,3 +1,20 @@
+// أضف هذا السطر في أعلى ملف شاشتك الرئيسية للاستدعاء
+import 'manage_individual_screen.dart';
+
+// داخل الـ Build الخاص بالشاشة الرئيسية، في قائمة الأزرار أو الـ Drawer، أضف هذا الزر التلقائي:
+ListTile(
+  leading: const Icon(Icons.person_add, color: Colors.blue),
+  title: const Text('الإدارة اليدوية للأفراد', style: TextStyle(fontWeight: FontWeight.bold)),
+  subtitle: const Text('إضافة فرد، تعديل رتبة، أو تغيير حالة يدوياً'),
+  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ManageIndividualScreen()),
+    );
+  },
+)
+
 import 'package:flutter/material.dart';
 
 import 'hr_screen.dart';
