@@ -5,6 +5,7 @@ import 'package:open_file/open_file.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:excel/excel.dart'; // حقن مكتبة الإكسل لمعالجة الملفات برمجياً
 
 import '../db/db_helper.dart';
 import '../core/excel_reader.dart';
@@ -17,6 +18,8 @@ class HrScreen extends StatefulWidget {
   State<HrScreen> createState() => _HrScreenState();
 }
 
+class _AlterState extends State<HrScreen> {} // تأمين للمستقبل إذا لزم الأمر
+
 class _HrScreenState extends State<HrScreen> {
   String selectedYear = "2026";
   String fromMonth = "يناير";
@@ -24,7 +27,7 @@ class _HrScreenState extends State<HrScreen> {
   final TextEditingController searchController = TextEditingController();
 
   String importYear = "2026";
-  String importMonth = "1"; 
+  String importMonth = "1";
   bool isImporting = false;
 
   final List<String> years = ["2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030"];
@@ -75,7 +78,7 @@ class _HrScreenState extends State<HrScreen> {
                         ],
                       ),
                       const SizedBox(height: 15),
-                      isImporting 
+                      isImporting
                         ? const CircularProgressIndicator()
                         : ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700),
@@ -87,7 +90,7 @@ class _HrScreenState extends State<HrScreen> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 20),
               const Divider(thickness: 2),
 
@@ -146,16 +149,28 @@ class _HrScreenState extends State<HrScreen> {
     );
   }
 
+  // الدالة المصححة بالكامل لتتوافق مع دالة ملف excel_reader.dart الحقيقية
   Future<void> _pickAndImportExcel() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['xlsx', 'xls']);
       if (result != null && result.files.single.path != null) {
         setState(() => isImporting = true);
-        File file = File(result.files.single.path!);
-        List<Map<String, dynamic>> excelData = await ExcelReader.readExcel(file.path);
-        if (excelData.isEmpty) throw Exception("الملف فارغ");
+        var bytes = File(result.files.single.path!).readAsBytesSync();
+        var excel = Excel.decodeBytes(bytes);
+
+        // جلب أول صفحة (Sheet) من الملف تلقائياً
+        String firstSheetName = excel.tables.keys.first;
+        var sheet = excel.tables[firstSheetName];
+
+        if (sheet == null) throw Exception("لا توجد صفحات داخل ملف الإكسل");
+
+        // استدعاء الدالة الصحيحة والموجودة فعلياً في كودك: readData
+        List<Map<String, dynamic>> excelData = ExcelReader.readData(sheet);
+
+        if (excelData.isEmpty) throw Exception("الملف فارغ أو غير مدعوم التنسيق");
+
         await ExcelToDbService.import(excelData, importMonth, importYear);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Colors.green, content: Text("تم استيراد بيانات الأفراد بنجاح")));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: Colors.green, content: Text("تم استيراد بيانات الأفراد بنجاح")));
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text("خطأ: ${e.toString()}")));
