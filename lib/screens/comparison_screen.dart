@@ -94,7 +94,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
       };
     }
 
-    final path = await MonthlyComparisonPdf.export(
+    final path = await MonthlyComparisonPdf.export(months: monthsList, people: people, topText: "تقرير المباينة النهائي", leftSignature: "القائد", rightSignature: "شؤون الأفراد",
       months: monthsList,
       people: people,
       pdfData,
