@@ -1,9 +1,7 @@
 import 'package:printing/printing.dart';
-import 'package:html/parser.dart' show parse;
 
 class FinalReportPdf {
 
-  /// 🚀 دالة التصدير الذكية عبر محرك نظام الأندرويد الرسمي (الخطة ج)
   static Future<void> export({
     required List<String> months,
     required List<Map<String, dynamic>> people,
@@ -11,21 +9,18 @@ class FinalReportPdf {
     String footerText = '',
   }) async {
 
-    // جلب بيانات الفرد الأساسية
     final person = people.isNotEmpty ? people.first : {};
     final String pNumber = person["number"]?.toString() ?? "-";
     final String pName = person["name"]?.toString() ?? "-";
     final String pRank = person["rank"]?.toString() ?? "-";
     final String pUnit = person["unit"]?.toString() ?? "-";
 
-    // 📊 توليد أسطر الجدول ديناميكياً بناءً على الأشهر والحالات الممررة
     String monthsHeaders = "";
     String statusCells = "";
 
     for (var m in months) {
-      monthsHeaders += "<th style='border: 1px solid black; padding: 8px; background-color: #f2f2f2;'>$m</th>";
+      monthsHeaders += "<th style='border: 1px solid #000; padding: 10px; background-color: #f5f5f5;'>$m</th>";
       
-      // البحث عن حالة الشخص في هذا الشهر المحدود
       String statusValue = "-";
       for (var p in people) {
         if (p["month"] == m) {
@@ -33,42 +28,46 @@ class FinalReportPdf {
           break;
         }
       }
-      statusCells += "<td style='border: 1px solid black; padding: 8px; text-align: center;'>$statusValue</td>";
+      statusCells += "<td style='border: 1px solid #000; padding: 10px; text-align: center; font-weight: bold;'>$statusValue</td>";
     }
 
-    // 🎨 صياغة مستند الـ HTML العسكري المنسق والمحاذي بالكامل من اليمين لليسار (RTL)
+    // 🎨 تم جلب خط Cairo مباشرة من سيرفرات جوجل لحسم مشكلة المربعات في الأندرويد نهائياً
     final String htmlContent = """
     <!DOCTYPE html>
     <html dir="rtl" lang="ar">
     <head>
       <meta charset="utf-8">
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
       <style>
         body { 
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-          margin: 30px; 
+          font-family: 'Cairo', sans-serif; 
+          margin: 40px; 
           color: #000;
+          background-color: #fff;
         }
         .title { 
           text-align: center; 
-          font-size: 24px; 
+          font-size: 26px; 
           font-weight: bold; 
           margin-bottom: 5px;
         }
         .subtitle { 
           text-align: center; 
           font-size: 16px; 
-          margin-bottom: 25px;
+          margin-bottom: 30px;
+          color: #444;
         }
         .info-box { 
           border: 2px solid #000; 
           padding: 15px; 
-          margin-bottom: 25px;
-          line-height: 1.6;
+          margin-bottom: 30px;
+          line-height: 1.8;
         }
         .info-row { 
           display: flex; 
           justify-content: space-between; 
-          margin-bottom: 10px;
         }
         .info-item { 
           font-size: 16px; 
@@ -77,13 +76,13 @@ class FinalReportPdf {
         table { 
           width: 100%; 
           border-collapse: collapse; 
-          margin-top: 20px; 
+          margin-top: 25px; 
           font-size: 16px;
         }
         .signatures { 
           display: flex; 
           justify-content: space-between; 
-          margin-top: 60px; 
+          margin-top: 80px; 
           font-size: 16px;
         }
       </style>
@@ -96,11 +95,11 @@ class FinalReportPdf {
       <div class="info-box">
         <div class="info-row">
           <div class="info-item"><strong>الرقم العسكري:</strong> $pNumber</div>
-          <div class="info-item"><strong>الرتبة:</strong> $pRank</div>
+          <div class="info-item"><strong>الرتبة العسكرية:</strong> $pRank</div>
         </div>
-        <div class="info-row">
-          <div class="info-item"><strong>الاسم:</strong> $pName</div>
-          <div class="info-item"><strong>الوحدة:</strong> $pUnit</div>
+        <div class="info-row" style="margin-top: 10px;">
+          <div class="info-item"><strong>الاسم الكامل:</strong> $pName</div>
+          <div class="info-item"><strong>الوحدة / التشكيل:</strong> $pUnit</div>
         </div>
       </div>
 
@@ -119,22 +118,21 @@ class FinalReportPdf {
 
       <div class="signatures">
         <div>توقيع مدير القسم: ....................</div>
-        <div>توقيع الاعتماد: ....................</div>
+        <div>توقيع الاعتماد الحتمي: ....................</div>
       </div>
 
-      ${footerText.isNotEmpty ? "<div style='text-align: center; margin-top: 5px; font-size: 14px;'>$footerText</div>" : ""}
+      ${footerText.isNotEmpty ? "<div style='text-align: center; margin-top: 60px; font-size: 14px; border-top: 1px dashed #ccc; padding-top: 10px;'>$footerText</div>" : ""}
 
     </body>
     </html>
     """;
 
-    // 🚀 الأمر الحاسم: إرسال الـ HTML مباشرة لمحرك طباعة أندرويد ليتولى التوليد بنقاء 100%
     await Printing.layoutPdf(
       onLayout: (format) async => await Printing.convertHtml(
         format: format,
         html: htmlContent,
       ),
-      name: 'status_report_$pNumber',
+      name: 'تقرير_عسكري_$pNumber',
     );
   }
 }
