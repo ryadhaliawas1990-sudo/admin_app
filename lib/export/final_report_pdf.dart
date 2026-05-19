@@ -1,127 +1,140 @@
-import 'dart:io';
-import 'package:flutter/services.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:path_provider/path_provider.dart';
-import 'package:open_file/open_file.dart';
+import 'package:printing/printing.dart';
+import 'package:html/parser.dart' show parse;
 
 class FinalReportPdf {
 
-  static Future<String> export({
+  /// 🚀 دالة التصدير الذكية عبر محرك نظام الأندرويد الرسمي (الخطة ج)
+  static Future<void> export({
     required List<String> months,
     required List<Map<String, dynamic>> people,
     String headerText = '',
     String footerText = '',
   }) async {
 
-    final pdf = pw.Document();
-
-    // 🎯 تحميل ملف خط مدمج يدعم العربية لقطع دابر المربعات تماماً
-    final fontData = await rootBundle.load("assets/fonts/Cairo-Regular.ttf");
-    final ttf = pw.Font.ttf(fontData);
-
-    final arabicStyle = pw.TextStyle(font: ttf, fontSize: 13);
-    final titleStyle = pw.TextStyle(font: ttf, fontSize: 18, fontWeight: pw.FontWeight.bold);
-
-    PdfPageFormat pageFormat = months.length > 5 ? PdfPageFormat.a4.landscape : PdfPageFormat.a4.portrait;
-
+    // جلب بيانات الفرد الأساسية
     final person = people.isNotEmpty ? people.first : {};
     final String pNumber = person["number"]?.toString() ?? "-";
     final String pName = person["name"]?.toString() ?? "-";
     final String pRank = person["rank"]?.toString() ?? "-";
     final String pUnit = person["unit"]?.toString() ?? "-";
 
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: pageFormat,
-        textDirection: pw.TextDirection.rtl, 
-        build: (context) => [
-          pw.Center(child: pw.Text("تقرير سجل الحالة الدوري", style: titleStyle)),
-          pw.SizedBox(height: 10),
-          if (headerText.isNotEmpty) pw.Center(child: pw.Text(headerText, style: arabicStyle)),
-          pw.SizedBox(height: 20),
+    // 📊 توليد أسطر الجدول ديناميكياً بناءً على الأشهر والحالات الممررة
+    String monthsHeaders = "";
+    String statusCells = "";
 
-          pw.Directionality(
-            textDirection: pw.TextDirection.rtl,
-            child: pw.Container(
-              border: pw.Border.all(color: PdfColors.black, width: 1),
-              padding: const pw.EdgeInsets.all(10),
-              child: pw.Column(
-                cross: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text("الرقم العسكري: $pNumber", style: arabicStyle),
-                      pw.Text("الرتبة: $pRank", style: arabicStyle),
-                    ],
-                  ),
-                  pw.SizedBox(height: 8),
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text("الاسم: $pName", style: arabicStyle),
-                      pw.Text("الوحدة: $pUnit", style: arabicStyle),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          pw.SizedBox(height: 20),
+    for (var m in months) {
+      monthsHeaders += "<th style='border: 1px solid black; padding: 8px; background-color: #f2f2f2;'>$m</th>";
+      
+      // البحث عن حالة الشخص في هذا الشهر المحدود
+      String statusValue = "-";
+      for (var p in people) {
+        if (p["month"] == m) {
+          statusValue = p["status"]?.toString() ?? "-";
+          break;
+        }
+      }
+      statusCells += "<td style='border: 1px solid black; padding: 8px; text-align: center;'>$statusValue</td>";
+    }
 
-          pw.Directionality(
-            textDirection: pw.TextDirection.rtl,
-            child: pw.Table(
-              border: pw.TableBorder.all(color: PdfColors.black, width: 1),
-              children: [
-                pw.TableRow(
-                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
-                  children: months.map((m) => pw.Padding(
-                    padding: const pw.EdgeInsets.all(6),
-                    child: pw.Center(child: pw.Text(m, style: arabicStyle)),
-                  )).toList(),
-                ),
-                pw.TableRow(
-                  children: months.map((m) {
-                    String statusValue = "-";
-                    for (var p in people) {
-                      if (p["month"] == m) {
-                        statusValue = p["status"]?.toString() ?? "-";
-                        break;
-                      }
-                    }
-                    return pw.Padding(
-                      padding: const pw.EdgeInsets.all(6),
-                      child: pw.Center(child: pw.Text(statusValue, style: arabicStyle)),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          ),
-          
-          pw.SizedBox(height: 40),
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-            children: [
-              pw.Text("توقيع مدير القسم: ....................", style: arabicStyle),
-              pw.Text("توقيع الاعتماد: ....................", style: arabicStyle),
-            ],
-          ),
-          if (footerText.isNotEmpty) ...[
-            pw.SizedBox(height: 30),
-            pw.Center(child: pw.Text(footerText, style: arabicStyle)),
-          ]
-        ],
+    // 🎨 صياغة مستند الـ HTML العسكري المنسق والمحاذي بالكامل من اليمين لليسار (RTL)
+    final String htmlContent = """
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { 
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+          margin: 30px; 
+          color: #000;
+        }
+        .title { 
+          text-align: center; 
+          font-size: 24px; 
+          font-weight: bold; 
+          margin-bottom: 5px;
+        }
+        .subtitle { 
+          text-align: center; 
+          font-size: 16px; 
+          margin-bottom: 25px;
+        }
+        .info-box { 
+          border: 2px solid #000; 
+          padding: 15px; 
+          margin-bottom: 25px;
+          line-height: 1.6;
+        }
+        .info-row { 
+          display: flex; 
+          justify-content: space-between; 
+          margin-bottom: 10px;
+        }
+        .info-item { 
+          font-size: 16px; 
+          width: 48%;
+        }
+        table { 
+          width: 100%; 
+          border-collapse: collapse; 
+          margin-top: 20px; 
+          font-size: 16px;
+        }
+        .signatures { 
+          display: flex; 
+          justify-content: space-between; 
+          margin-top: 60px; 
+          font-size: 16px;
+        }
+      </style>
+    </head>
+    <body>
+
+      <div class="title">تقرير سجل الحالة الدوري</div>
+      <div class="subtitle">${headerText.isNotEmpty ? headerText : ""}</div>
+
+      <div class="info-box">
+        <div class="info-row">
+          <div class="info-item"><strong>الرقم العسكري:</strong> $pNumber</div>
+          <div class="info-item"><strong>الرتبة:</strong> $pRank</div>
+        </div>
+        <div class="info-row">
+          <div class="info-item"><strong>الاسم:</strong> $pName</div>
+          <div class="info-item"><strong>الوحدة:</strong> $pUnit</div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            $monthsHeaders
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            $statusCells
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="signatures">
+        <div>توقيع مدير القسم: ....................</div>
+        <div>توقيع الاعتماد: ....................</div>
+      </div>
+
+      ${footerText.isNotEmpty ? "<div style='text-align: center; margin-top: 5px; font-size: 14px;'>$footerText</div>" : ""}
+
+    </body>
+    </html>
+    """;
+
+    // 🚀 الأمر الحاسم: إرسال الـ HTML مباشرة لمحرك طباعة أندرويد ليتولى التوليد بنقاء 100%
+    await Printing.layoutPdf(
+      onLayout: (format) async => await Printing.convertHtml(
+        format: format,
+        html: htmlContent,
       ),
+      name: 'status_report_$pNumber',
     );
-
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File("${dir.path}/status_report_${DateTime.now().millisecondsSinceEpoch}.pdf");
-    await file.writeAsBytes(await pdf.save());
-    
-    await OpenFile.open(file.path);
-    return file.path;
   }
 }
