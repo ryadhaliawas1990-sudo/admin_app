@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
-import 'hr_screen.dart';
 import 'reports_archive_screen.dart';
-import 'comparison_builder_screen.dart';
 
 class MainApp extends StatefulWidget {
   const MainApp({super.key});
