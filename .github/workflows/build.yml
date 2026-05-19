@@ -3,40 +3,25 @@ name: Flutter Build APK
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
-
-    - name: Set up Flutter
-      uses: subosito/flutter-action@v2
+    - uses: subosito/flutter-action@v2
       with:
         flutter-version: '3.x'
         channel: 'stable'
         cache: true
-
-    - name: Install dependencies
-      run: flutter pub get
-
-    # 🎯 التعديل الحاسم: بناء نسخة التوزيع النهائي المضغوطة وتقسيمها حسب نوع المعالج لتخفيض الحجم لأقصى حد
-    - name: Build APK
-      run: flutter build apk --release --split-per-abi
-
-    # 🚀 رفع النسخ الرشيقة الناتجة (ستجد ملفات منفصلة اختر منها app-arm64-v8a-release.apk لهاتفك)
-    - name: Upload APK Artifact
-      uses: actions/upload-artifact@v4
+    - run: flutter pub get
+    - name: Build Universal APK
+      run: flutter build apk --release
+    - uses: actions/upload-artifact@v4
       with:
-        name: admin-app-release-apk
-        path: build/app/outputs/flutter-apk/*-release.apk
+        name: admin-app-single-apk
+        path: build/app/outputs/flutter-apk/app-release.apk
