@@ -9,7 +9,6 @@ class MonthlyComparisonPdf {
     String? rightSignature,
     Map<String, dynamic>? data,
   }) async {
-    // هذه هي الدالة التي تطلبها الشاشة
     return "تم التصدير بنجاح";
   }
 }
