@@ -1,13 +1,5 @@
 import 'package:flutter/material.dart';
 
-// 🚀 حقن مسار شاشة الإدارة اليدوية للأفراد الجديدة
-import 'manage_individual_screen.dart';
-
-import 'hr_screen.dart';
-import 'report_screen.dart';
-import 'dashboard_screen.dart';
-import 'export_screen.dart';
-
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -15,99 +7,91 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("النظام الإداري العام"),
+        title: const Text("نظام الإدارة والسيطرة العام"),
         centerTitle: true,
+        backgroundColor: Colors.indigo.shade900,
       ),
-
-      body: GridView.count(
-        crossAxisCount: 2,
-        padding: const EdgeInsets.all(12),
-        children: [
-
-          _card(
-            context,
-            "الموارد البشرية",
-            Icons.people,
-            () {
-              Navigator.push(
+      body: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: GridView.count(
+            crossAxisCount: 2, // تقسيم الشاشة لبطاقات متوازية
+            crossAxisSpacing: 15,
+            mainAxisSpacing: 15,
+            children: [
+              // 1. قطاع الموارد البشرية (مستقل)
+              _buildMenuCard(
                 context,
-                MaterialPageRoute(builder: (_) => const HrScreen()),
-              );
-            },
-          ),
+                title: "الموارد البشرية",
+                subtitle: "سجل الحالة والمباينات",
+                icon: Icons.people_alt,
+                color: Colors.blue.shade700,
+                route: '/hr',
+              ),
 
-          _card(
-            context,
-            "لوحة التحكم",
-            Icons.dashboard,
-            () {
-              Navigator.push(
+              // 2. قطاع الفنية والتسليح (مستقل)
+              _buildMenuCard(
                 context,
-                MaterialPageRoute(builder: (_) => const DashboardScreen()),
-              );
-            },
-          ),
+                title: "الفنية والتسليح",
+                subtitle: "الآليات، قطع الغيار والمشتريات",
+                icon: Icons.settings_suggest,
+                color: Colors.orange.shade800,
+                route: '/technical',
+              ),
 
-          _card(
-            context,
-            "التقارير",
-            Icons.bar_chart,
-            () {
-              Navigator.push(
+              // 3. قطاع الإمداد والتموين (مستقل)
+              _buildMenuCard(
                 context,
-                MaterialPageRoute(builder: (_) => const ReportScreen()),
-              );
-            },
-          ),
+                title: "الإمداد والتموين",
+                subtitle: "الغذاء، المحروقات والإسكان",
+                icon: Icons.local_shipping,
+                color: Colors.purple.shade700,
+                route: '/supply',
+              ),
 
-          _card(
-            context,
-            "تصدير Excel",
-            Icons.download,
-            () {
-              Navigator.push(
+              // 4. قطاع التقارير والإحصائيات
+              _buildMenuCard(
                 context,
-                MaterialPageRoute(builder: (_) => const ExportScreen()),
-              );
-            },
+                title: "التقارير العامة",
+                subtitle: "الأرشيف والمخرجات",
+                icon: Icons.bar_chart,
+                color: Colors.teal.shade700,
+                route: '/reports',
+              ),
+            ],
           ),
-
-          // 🪖 المربع الخامس المطور: الإدارة اليدوية والأرشفة
-          _card(
-            context,
-            "الإدارة اليدوية للأفراد",
-            Icons.person_add,
-            () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ManageIndividualScreen()),
-              );
-            },
-            cardColor: Colors.blue.shade50,
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _card(BuildContext context, String title, IconData icon, VoidCallback onTap, {Color? cardColor}) {
-    return InkWell(
-      onTap: onTap,
-      child: Card(
-        color: cardColor,
-        elevation: 3,
-        child: Center(
+  Widget _buildMenuCard(BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required String route,
+  }) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: InkWell(
+        onTap: () => Navigator.pushNamed(context, route),
+        borderRadius: BorderRadius.circular(15),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 45, color: cardColor != null ? Colors.blue.shade900 : null),
+              Icon(icon, size: 40, color: color),
               const SizedBox(height: 10),
+              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 5),
               Text(
-                title,
-                style: TextStyle(
-                  fontWeight: cardColor != null ? FontWeight.bold : FontWeight.normal,
-                  color: cardColor != null ? Colors.blue.shade900 : null,
-                ),
+                subtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
               ),
             ],
           ),
