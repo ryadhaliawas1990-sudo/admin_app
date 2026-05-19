@@ -140,7 +140,7 @@ class _HrScreenState extends State<HrScreen> {
           return pw.Directionality(
             textDirection: pw.TextDirection.rtl,
             child: pw.Column(
-              cross: pw.CrossAxisAlignment.start,
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Center(
                   child: pw.Text(
