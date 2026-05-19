@@ -18,7 +18,6 @@ class HrScreen extends StatefulWidget {
   State<HrScreen> createState() => _HrScreenState();
 }
 
-class _AlterState extends State<HrScreen> {} // تأمين للمستقبل إذا لزم الأمر
 
 class _HrScreenState extends State<HrScreen> {
   String selectedYear = "2026";
