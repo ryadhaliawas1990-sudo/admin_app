@@ -72,7 +72,7 @@ class HomeScreen extends StatelessWidget {
             },
           ),
 
-          // 🪖 المربع الخامس الجديد: الإدارة اليدوية والأرشفة
+          // 🪖 المربع الخامس المطور: الإدارة اليدوية والأرشفة
           _card(
             context,
             "الإدارة اليدوية للأفراد",
@@ -83,14 +83,13 @@ class HomeScreen extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const ManageIndividualScreen()),
               );
             },
-            cardColor: Colors.blue.shade50, // تمييز بسيط للزر الجديد لسهولة الوصول
+            cardColor: Colors.blue.shade50,
           ),
         ],
       ),
     );
   }
 
-  // دالة بناء المربعات المحدثة لتقبل ألواناً مخصصة اختيارياً
   Widget _card(BuildContext context, String title, IconData icon, VoidCallback onTap, {Color? cardColor}) {
     return InkWell(
       onTap: onTap,
