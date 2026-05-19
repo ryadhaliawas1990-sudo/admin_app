@@ -1,9 +1,9 @@
-class MonthlyComparisonService {
+import '../db/db_helper.dart';
 
+class MonthlyComparisonService {
   static Future<Map<String, dynamic>> build({
     required List<String> months,
   }) async {
-
     final dataByMonth = <String, List<Map<String, dynamic>>>{};
 
     for (var m in months) {
@@ -21,24 +21,17 @@ class MonthlyComparisonService {
     final result = <Map<String, dynamic>>[];
 
     for (var person in allPeople.values) {
-
       final monthsMap = <String, String>{};
-
       for (var m in months) {
-
         final list = dataByMonth[m] ?? [];
-
-        final found = list.where(
-          (e) => e["number"] == person["number"],
-        );
-
+        final found = list.where((e) => e["number"] == person["number"]);
+        
         if (found.isNotEmpty) {
           monthsMap[m] = found.first["status"];
         } else {
           monthsMap[m] = "-";
         }
       }
-
       result.add({
         "number": person["number"],
         "name": person["name"],
