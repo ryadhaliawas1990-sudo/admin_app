@@ -18,7 +18,7 @@ class _MainAppState extends State<MainApp> {
     DashboardScreen(),
     HrScreen(),
     ReportsArchiveScreen(),
-    ComparisonBuilderScreen(), // 📊 المباينة الجديدة
+    const HrScreen(),
   ];
 
   @override
