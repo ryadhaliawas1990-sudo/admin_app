@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
 import 'reports_archive_screen.dart';
 import 'hr_screen.dart';
+import 'comparison_screen.dart'; // تأكدنا من وجود هذا الملف
 
 class MainApp extends StatefulWidget {
   const MainApp({super.key});
@@ -13,22 +14,18 @@ class MainApp extends StatefulWidget {
 class _MainAppState extends State<MainApp> {
   int index = 0;
 
-  // القائمة النهائية والمصححة برمجياً
+  // الربط الصحيح: كل صفحة بملفها الخاص
   final List<Widget> screens = const [
     DashboardScreen(),
     HrScreen(),
     ReportsArchiveScreen(),
-    HrScreen(),
+    ComparisonScreen(), // الآن المباينة لها شاشتها الخاصة
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("نظام الإدارة"),
-      ),
-
-      // 🧭 القائمة الجانبية
+      appBar: AppBar(title: const Text("نظام الإدارة")),
       drawer: Drawer(
         child: Column(
           children: [
@@ -36,54 +33,18 @@ class _MainAppState extends State<MainApp> {
               decoration: BoxDecoration(color: Colors.blue),
               accountName: Text("تصميم رياض عواس", style: TextStyle(fontWeight: FontWeight.bold)),
               accountEmail: Text("781927044"),
-              currentAccountPicture: CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Icon(Icons.person, size: 40, color: Colors.blue),
-              ),
+              currentAccountPicture: CircleAvatar(backgroundColor: Colors.white, child: Icon(Icons.person, size: 40, color: Colors.blue)),
             ),
-            ListTile(
-              leading: const Icon(Icons.dashboard),
-              title: const Text("لوحة التحكم"),
-              onTap: () {
-                setState(() => index = 0);
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.people),
-              title: const Text("الموارد البشرية"),
-              onTap: () {
-                setState(() => index = 1);
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.bar_chart),
-              title: const Text("التقارير"),
-              onTap: () {
-                setState(() => index = 2);
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.compare_arrows),
-              title: const Text("المباينة"),
-              onTap: () {
-                setState(() => index = 3);
-                Navigator.pop(context);
-              },
-            ),
+            _buildDrawerItem(Icons.dashboard, "لوحة التحكم", 0),
+            _buildDrawerItem(Icons.people, "الموارد البشرية", 1),
+            _buildDrawerItem(Icons.bar_chart, "التقارير", 2),
+            _buildDrawerItem(Icons.compare_arrows, "المباينة", 3),
             const Spacer(),
-            const Padding(
-              padding: EdgeInsets.all(12),
-              child: Text("v1.0 - HR System", style: TextStyle(color: Colors.grey)),
-            ),
+            const Padding(padding: EdgeInsets.all(12), child: Text("v1.0 - HR System", style: TextStyle(color: Colors.grey))),
           ],
         ),
       ),
-
       body: screens[index],
-
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: index,
         onTap: (i) => setState(() => index = i),
@@ -95,6 +56,18 @@ class _MainAppState extends State<MainApp> {
           BottomNavigationBarItem(icon: Icon(Icons.compare_arrows), label: "المباينة"),
         ],
       ),
+    );
+  }
+
+  // دالة مساعدة لجعل الكود أنظف وأقل عرضة للخطأ
+  Widget _buildDrawerItem(IconData icon, String title, int i) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      onTap: () {
+        setState(() => index = i);
+        Navigator.pop(context);
+      },
     );
   }
 }
