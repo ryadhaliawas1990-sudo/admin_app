@@ -4,8 +4,13 @@ import '../db/db_helper.dart';
 
 class ExcelImportService {
 
-  static Future<Map<String, dynamic>> pickAndReadExcel(String selectedMonth, String selectedYear) async {
+  static Future<Map<String, dynamic>> pickAndReadExcel(
+      String selectedMonth,
+      String selectedYear,
+      ) async {
+
     try {
+
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['xlsx', 'xls'],
@@ -13,39 +18,71 @@ class ExcelImportService {
       );
 
       if (result == null || result.files.isEmpty) {
-        return {"success": false, "message": "تم إلغاء اختيار الملف"};
+        return {
+          "success": false,
+          "message": "تم إلغاء اختيار الملف"
+        };
       }
 
       final file = result.files.first;
+
       final bytes = file.bytes;
+
       if (bytes == null) {
-        return {"success": false, "message": "تعذر قراءة بيانات الملف داخلياً"};
+        return {
+          "success": false,
+          "message": "تعذر قراءة بيانات الملف"
+        };
       }
 
       final excel = Excel.decodeBytes(bytes);
 
-      // 🛡️ تصفير السجلات القديمة أولاً
+      // حذف بيانات الشهر القديمة
       await DBHelper.deleteMonthData(selectedMonth, selectedYear);
 
-      int processedCount = 0; // عداد للتحقق من السجلات
+      int processedCount = 0;
 
       for (var tableName in excel.tables.keys) {
+
         final sheet = excel.tables[tableName];
+
         if (sheet == null) continue;
 
         for (int i = 1; i < sheet.rows.length; i++) {
+
           final row = sheet.rows[i];
+
           if (row.isEmpty) continue;
 
-          final number = row.length > 1 ? row[1]?.value?.toString().trim() ?? "" : "";
-          final rank   = row.length > 2 ? row[2]?.value?.toString().trim() ?? "" : "";
-          final name   = row.length > 3 ? row[3]?.value?.toString().trim() ?? "" : "";
-          final unit   = row.length > 4 ? row[4]?.value?.toString().trim() ?? "" : "";
-          final status = row.length > 5 ? row[5]?.value?.toString().trim() ?? "" : "";
+          // دالة آمنة لقراءة الخلية
+          String readCell(int index) {
 
-          if (number.isEmpty && name.isEmpty) continue;
+            if (index >= row.length) return "";
 
-          // إدخال مباشر لضمان التسلسل والتحقق
+            final cell = row[index];
+
+            if (cell == null || cell.value == null) {
+              return "";
+            }
+
+            return cell.value.toString().trim();
+          }
+
+          final number = readCell(1);
+          final rank   = readCell(2);
+          final name   = readCell(3);
+          final unit   = readCell(4);
+          final status = readCell(5);
+
+          // للتشخيص
+          print("IMPORT => number=$number | name=$name");
+
+          // تجاهل الصفوف الفارغة
+          if (number.isEmpty && name.isEmpty) {
+            continue;
+          }
+
+          // إدخال البيانات
           await DBHelper.insertTimeline({
             'number': number,
             'name': name,
@@ -55,33 +92,59 @@ class ExcelImportService {
             'month': selectedMonth,
             'year': selectedYear,
           });
+
           processedCount++;
         }
       }
 
       if (processedCount == 0) {
-        return {"success": false, "message": "فشل: لم يتم العثور على أي بيانات داخل ملف الإكسل"};
+
+        return {
+          "success": false,
+          "message": "لم يتم العثور على أي بيانات داخل ملف الإكسل"
+        };
       }
 
-      await DBHelper.markMonthImported(selectedMonth, selectedYear);
-      return {"success": true, "message": "تم استيراد $processedCount سجل بنجاح"};
+      await DBHelper.markMonthImported(
+        selectedMonth,
+        selectedYear,
+      );
+
+      return {
+        "success": true,
+        "message": "تم استيراد $processedCount سجل بنجاح"
+      };
 
     } catch (e) {
-      return {"success": false, "message": "حدث خطأ أثناء المعالجة: $e"};
+
+      return {
+        "success": false,
+        "message": "حدث خطأ أثناء المعالجة: $e"
+      };
     }
   }
 
-  static Future<bool> deleteFullMonth(String month, String year) async {
+  static Future<bool> deleteFullMonth(
+      String month,
+      String year,
+      ) async {
+
     try {
+
       final db = await DBHelper.database;
+
       await DBHelper.deleteMonthData(month, year);
+
       await db.delete(
         'imported_months',
         where: 'month = ? AND year = ?',
         whereArgs: [month, year],
       );
+
       return true;
+
     } catch (e) {
+
       return false;
     }
   }
