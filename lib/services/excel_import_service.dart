@@ -51,15 +51,19 @@ class ExcelImportService {
 
           if (number.isEmpty && name.isEmpty) continue;
 
-          await DBHelper.insertTimeline({
-            'number': number,
-            'name': name,
-            'rank': rank,
-            'unit': unit, 
-            'status': status.isEmpty ? "-" : status,
-            'month': selectedMonth,
-            'year': selectedYear,
-          });
+          try {
+            await DBHelper.insertTimeline({
+              'number': number,
+              'name': name,
+              'rank': rank,
+              'unit': unit,
+              'status': status.isEmpty ? "-" : status,
+              'month': selectedMonth,
+              'year': selectedYear,
+            });
+          } catch (e) {
+            print("Error inserting: $name - $e");
+          }
         }
       }
 
