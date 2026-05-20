@@ -26,43 +26,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> loadStats() async {
 
-    final db = await DBHelper.database;
+    try {
 
-    final people = await db.rawQuery('''
-      SELECT COUNT(DISTINCT number) as count
-      FROM timeline
-    ''');
+      final db = await DBHelper.database;
 
-    final records = await db.rawQuery('''
-      SELECT COUNT(*) as count
-      FROM timeline
-    ''');
+      final people = await db.rawQuery('''
+        SELECT COUNT(DISTINCT number) as count
+        FROM timeline
+      ''');
 
-    final years = await db.rawQuery('''
-      SELECT COUNT(DISTINCT year) as count
-      FROM timeline
-    ''');
+      final records = await db.rawQuery('''
+        SELECT COUNT(*) as count
+        FROM timeline
+      ''');
 
-    final statuses = await db.rawQuery('''
-      SELECT status, COUNT(*) as count
-      FROM timeline
-      GROUP BY status
-    ''');
+      final years = await db.rawQuery('''
+        SELECT COUNT(DISTINCT year) as count
+        FROM timeline
+      ''');
 
-    Map<String, int> statusMap = {};
+      final statuses = await db.rawQuery('''
+        SELECT status, COUNT(*) as count
+        FROM timeline
+        GROUP BY status
+      ''');
 
-    for (var s in statuses) {
-      statusMap[s['status'].toString()] =
-          int.tryParse(s['count'].toString()) ?? 0;
+      Map<String, int> statusMap = {};
+
+      for (var s in statuses) {
+        statusMap[s['status'].toString()] =
+            int.tryParse(s['count'].toString()) ?? 0;
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        totalPeople = (people.isNotEmpty ? people.first['count'] : 0) as int;
+        totalRecords = (records.isNotEmpty ? records.first['count'] : 0) as int;
+        totalYears = (years.isNotEmpty ? years.first['count'] : 0) as int;
+        statusCount = statusMap;
+        loading = false;
+      });
+
+    } catch (e) {
+
+      print("DASHBOARD ERROR: $e");
+
+      if (!mounted) return;
+
+      setState(() {
+        loading = false;
+      });
     }
-
-    setState(() {
-      totalPeople = people.first['count'] as int;
-      totalRecords = records.first['count'] as int;
-      totalYears = years.first['count'] as int;
-      statusCount = statusMap;
-      loading = false;
-    });
   }
 
   @override
@@ -81,13 +96,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 children: [
 
-                  // 🟢 الإحصائيات الأساسية
                   Row(
                     children: [
-
                       Expanded(child: _card("الأفراد", totalPeople)),
                       const SizedBox(width: 10),
-
                       Expanded(child: _card("السجلات", totalRecords)),
                     ],
                   ),
@@ -111,7 +123,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                   const SizedBox(height: 10),
 
-                  // 🟢 الحالات بشكل بطاقات
                   Expanded(
                     child: GridView.builder(
                       itemCount: statusCount.length,
@@ -137,7 +148,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-
                                 Text(
                                   key,
                                   style: const TextStyle(
@@ -145,9 +155,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-
                                 const SizedBox(height: 5),
-
                                 Text(
                                   value.toString(),
                                   style: const TextStyle(
