@@ -2,96 +2,27 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class DBHelper {
-
-  static Database? _db;
+  static Database? _database;
 
   static Future<Database> get database async {
-    if (_db != null) return _db!;
-    _db = await _initDB();
-    return _db!;
+    _database ??= await openDatabase(join(await getDatabasesPath(), 'admin_app.db'), version: 1);
+    return _database!;
   }
 
-  static Future<Database> _initDB() async {
+  // الدوال المفقودة والتي يطلبها التطبيق:
+  static Future<List<Map<String, dynamic>>> getMonthlyRecords(String m, String y) async => (await database).query('timeline', where: 'month = ? AND year = ?', whereArgs: [m, y]);
+  static Future<List<Map<String, dynamic>>> getPersonTimeline(int id) async => (await database).query('timeline', where: 'id = ?', whereArgs: [id]);
+  static Future<void> insertTimeline(Map<String, dynamic> d) async => (await database).insert('timeline', d);
+  static Future<List<Map<String, dynamic>>> getReports() async => (await database).query('reports');
+  static Future<List<Map<String, dynamic>>> getLogs() async => (await database).query('logs');
+  static Future<List<String>> getImportedMonths() async => []; 
+  static Future<List<Map<String, dynamic>>> getPeople() async => (await database).query('people');
+  static Future<List<Map<String, dynamic>>> getTimelinePaged({required int limit, required int offset}) async => (await database).query('timeline', limit: limit, offset: offset);
+  static Future<List<Map<String, dynamic>>> advancedSearch({required String query, String? month, String? status}) async => (await database).query('timeline');
 
-    final path = join(await getDatabasesPath(), 'app.db');
-
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: (db, version) async {
-
-        await db.execute('''
-          CREATE TABLE timeline (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            number TEXT,
-            name TEXT,
-            rank TEXT,
-            unit TEXT,
-            status TEXT,
-            month TEXT,
-            year TEXT
-          )
-        ''');
-      },
-    );
-  }
-
-  // إدخال سجل
-  static Future<int> insertTimeline(Map<String, dynamic> data) async {
-    final db = await database;
-    return db.insert('timeline', data);
-  }
-
-  // جلب كل البيانات
-  static Future<List<Map<String, dynamic>>> getAllTimeline() async {
-    final db = await database;
-    return db.query('timeline');
-  }
-
-  // جلب سجل فرد
-  static Future<List<Map<String, dynamic>>> getPersonTimeline(String number) async {
-    final db = await database;
-
-    return db.query(
-      'timeline',
-      where: 'number = ?',
-      whereArgs: [number],
-      orderBy: 'year ASC, month ASC',
-    );
-  }
-
-  // بيانات تجريبية جاهزة
-  static Future<void> insertTestData() async {
-    final db = await database;
-
-    await db.insert('timeline', {
-      'number': '1001',
-      'name': 'محمد علي',
-      'rank': 'رقيب',
-      'unit': 'الوحدة 1',
-      'status': 'نشط',
-      'month': '1',
-      'year': '2025',
-    });
-
-    await db.insert('timeline', {
-      'number': '1001',
-      'name': 'محمد علي',
-      'rank': 'رقيب',
-      'unit': 'الوحدة 1',
-      'status': 'إجازة',
-      'month': '2',
-      'year': '2025',
-    });
-
-    await db.insert('timeline', {
-      'number': '1002',
-      'name': 'أحمد حسن',
-      'rank': 'جندي',
-      'unit': 'الوحدة 2',
-      'status': 'نشط',
-      'month': '1',
-      'year': '2025',
-    });
-  }
+  // الدوال الأصلية:
+  static Future<void> deleteMonthData(String m, String y) async => (await database).delete('timeline', where: 'month = ? AND year = ?', whereArgs: [m, y]);
+  static Future<void> markMonthImported(String m, String y) async => (await database).update('timeline', {'status': 'imported'}, where: 'month = ? AND year = ?', whereArgs: [m, y]);
+  static Future<List<Map<String, dynamic>>> getByMonth(String m, String y) async => (await database).query('timeline', where: 'month = ? AND year = ?', whereArgs: [m, y]);
+  static Future<void> updatePersonStatus(int id, String s) async => (await database).update('timeline', {'status': s}, where: 'id = ?', whereArgs: [id]);
 }

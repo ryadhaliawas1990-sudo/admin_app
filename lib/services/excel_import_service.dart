@@ -9,7 +9,7 @@ class ExcelImportService {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['xlsx', 'xls'],
-        withData: true, 
+        withData: true,
       );
 
       if (result == null || result.files.isEmpty) {
@@ -24,8 +24,10 @@ class ExcelImportService {
 
       final excel = Excel.decodeBytes(bytes);
 
-      // 🛡️ تصفير السجلات القديمة للشهر المحدد لمنع تكرار الفرد في نفس الكشف عند إعادة الرفع
+      // 🛡️ تصفير السجلات القديمة أولاً
       await DBHelper.deleteMonthData(selectedMonth, selectedYear);
+
+      int processedCount = 0; // عداد للتحقق من السجلات
 
       for (var tableName in excel.tables.keys) {
         final sheet = excel.tables[tableName];
@@ -35,14 +37,6 @@ class ExcelImportService {
           final row = sheet.rows[i];
           if (row.isEmpty) continue;
 
-          // 📐 الترتيب والمحاذاة المليمتيرية المعتمدة بناءً على كشفك الفعلي:
-          // العمود 0 (A) = المتسلسل (يتم تجاهله برغبتك)
-          // العمود 1 (B) = الرقم العسكري
-          // العمود 2 (C) = الرتبة
-          // العمود 3 (D) = الاسم الكامل
-          // العمود 4 (E) = الوحدة
-          // العمود 5 (F) = الحالة
-          
           final number = row.length > 1 ? row[1]?.value?.toString().trim() ?? "" : "";
           final rank   = row.length > 2 ? row[2]?.value?.toString().trim() ?? "" : "";
           final name   = row.length > 3 ? row[3]?.value?.toString().trim() ?? "" : "";
@@ -51,24 +45,26 @@ class ExcelImportService {
 
           if (number.isEmpty && name.isEmpty) continue;
 
-          try {
-            await DBHelper.insertTimeline({
-              'number': number,
-              'name': name,
-              'rank': rank,
-              'unit': unit,
-              'status': status.isEmpty ? "-" : status,
-              'month': selectedMonth,
-              'year': selectedYear,
-            });
-          } catch (e) {
-            print("Error inserting: $name - $e");
-          }
+          // إدخال مباشر لضمان التسلسل والتحقق
+          await DBHelper.insertTimeline({
+            'number': number,
+            'name': name,
+            'rank': rank,
+            'unit': unit,
+            'status': status.isEmpty ? "-" : status,
+            'month': selectedMonth,
+            'year': selectedYear,
+          });
+          processedCount++;
         }
       }
 
+      if (processedCount == 0) {
+        return {"success": false, "message": "فشل: لم يتم العثور على أي بيانات داخل ملف الإكسل"};
+      }
+
       await DBHelper.markMonthImported(selectedMonth, selectedYear);
-      return {"success": true, "message": "تم الاستيراد والمزامنة بنجاح وبترتيب الأعمدة الصحيح"};
+      return {"success": true, "message": "تم استيراد $processedCount سجل بنجاح"};
 
     } catch (e) {
       return {"success": false, "message": "حدث خطأ أثناء المعالجة: $e"};

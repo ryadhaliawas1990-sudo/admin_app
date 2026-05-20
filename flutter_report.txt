@@ -1,0 +1,74 @@
+   Woah! You appear to be trying to run flutter as root.
+   We strongly recommend running the flutter tool without superuser privileges.
+  /
+📎
+[✓] Flutter (Channel stable, 3.41.9, on Ubuntu 25.10 6.17.0-PRoot-Distro, locale en_US.UTF-8) [362ms]
+    • Flutter version 3.41.9 on channel stable at /root/flutter
+    • Upstream repository https://github.com/flutter/flutter.git
+    • Framework revision 00b0c91f06 (3 weeks ago), 2026-04-29 10:03:19 -0700
+    • Engine revision 42d3d75a56
+    • Dart version 3.11.5
+    • DevTools version 2.54.2
+    • Feature flags: enable-web, enable-linux-desktop, enable-macos-desktop, enable-windows-desktop, enable-android, enable-ios, cli-animations, enable-native-assets, omit-legacy-version-file, enable-lldb-debugging, enable-uiscene-migration
+
+[✓] Android toolchain - develop for Android devices (Android SDK version 36.0.0) [139.9s]
+    • Android SDK at /root/android-sdk
+    • Emulator version unknown
+    • Platform android-36, build-tools 36.0.0
+    • ANDROID_HOME = /root/Android/Sdk
+    • ANDROID_SDK_ROOT = /root/Android/Sdk
+    • Java binary at: /data/data/com.termux/files/usr/bin/java
+      This JDK was found in the system PATH.
+      To manually set the JDK path, use: `flutter config --jdk-dir="path/to/jdk"`.
+    • Java version OpenJDK Runtime Environment (build 21.0.11)
+    • All Android licenses accepted.
+
+[✗] Chrome - develop for the web (Cannot find Chrome executable at google-chrome) [861ms]
+    ! Cannot find Chrome. Try setting CHROME_EXECUTABLE to a Chrome executable.
+
+[✓] Linux toolchain - develop for Linux desktop [2.6s]
+    • Ubuntu clang version 20.1.8 (0ubuntu4)
+    • cmake version 3.31.6
+    • ninja version 1.12.1
+    • pkg-config version 1.8.1
+    ! Unable to access driver information using 'eglinfo'.
+      It is likely available from your distribution (e.g.: apt install mesa-utils)
+
+[✓] Connected device (1 available) [2.2s]
+    • Linux (desktop) • linux • linux-arm64 • Ubuntu 25.10 6.17.0-PRoot-Distro
+
+[✓] Network resources [3.1s]
+    • All expected network resources are available.
+
+! Doctor found issues in 1 category.
+\n========== BUILD ==========
+   Woah! You appear to be trying to run flutter as root.
+   We strongly recommend running the flutter tool without superuser privileges.
+  /
+📎
+Running Gradle task 'assembleDebug'...                          
+   Woah! You appear to be trying to run flutter as root.
+   We strongly recommend running the flutter tool without superuser privileges.
+  /
+📎
+lib/services/monthly_comparison_service.dart:6:79: Error: The argument type 'String' can't be assigned to the parameter type 'int'.
+    for (var m in months) { dataByMonth[m] = await DBHelper.getPersonTimeline(m); }
+                                                                              ^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildDebug'.
+> Process 'command '/root/flutter/bin/flutter'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 3m 27s
+Running Gradle task 'assembleDebug'...                            209.8s
+Gradle task assembleDebug failed with exit code 1
