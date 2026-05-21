@@ -5,9 +5,9 @@ import '../db/db_helper.dart';
 class ExcelImportService {
 
   static Future<Map<String, dynamic>> pickAndReadExcel(
-      String selectedMonth,
-      String selectedYear,
-      ) async {
+    String selectedMonth,
+    String selectedYear,
+  ) async {
 
     try {
 
@@ -16,6 +16,10 @@ class ExcelImportService {
         allowedExtensions: ['xlsx', 'xls'],
         withData: true,
       );
+
+      // =========================
+      // التحقق من اختيار الملف
+      // =========================
 
       if (result == null || result.files.isEmpty) {
         return {
@@ -34,29 +38,67 @@ class ExcelImportService {
         };
       }
 
+      // =========================
+      // قراءة الإكسل
+      // =========================
+
       final excel = Excel.decodeBytes(bytes);
 
-      // حذف بيانات الشهر القديمة (نستخدم الدالة الموجودة فعليًا في DBHelper)
-      await DBHelper.deleteMonth(selectedMonth, selectedYear);
+      // حذف بيانات الشهر القديم
+      await DBHelper.deleteMonth(
+        selectedMonth,
+        selectedYear,
+      );
 
       int processedCount = 0;
 
-      for (var tableName in excel.tables.keys) {
+      // =========================
+      // قراءة الشيتات
+      // =========================
+
+      for (final tableName in excel.tables.keys) {
 
         final sheet = excel.tables[tableName];
+
         if (sheet == null) continue;
 
+        // بدء القراءة من الصف الثاني
         for (int i = 1; i < sheet.rows.length; i++) {
 
           final row = sheet.rows[i];
+
           if (row.isEmpty) continue;
 
+          // =========================
+          // قراءة الخلايا بأمان
+          // =========================
+
           String readCell(int index) {
-            if (index >= row.length) return "";
+
+            if (index >= row.length) {
+              return "";
+            }
+
             final cell = row[index];
-            if (cell == null || cell.value == null) return "";
-            return cell.value.toString().trim();
+
+            if (cell == null || cell.value == null) {
+              return "";
+            }
+
+            return cell.value
+                .toString()
+                .trim();
           }
+
+          // =========================
+          // ترتيب الأعمدة الصحيح
+          // A = تسلسل
+          // B = الرقم العسكري
+          // C = الرتبة
+          // D = الاسم
+          // E = الوحدة
+          // F = الحالة
+          // =========================
 
           final number = readCell(1);
           final rank   = readCell(2);
@@ -64,14 +106,26 @@ class ExcelImportService {
           final unit   = readCell(4);
           final status = readCell(5);
 
-          if (number.isEmpty && name.isEmpty) continue;
+          // تجاهل الصفوف الفارغة
+          if (number.isEmpty && name.isEmpty) {
+            continue;
+          }
+
+          // =========================
+          // حفظ البيانات
+          // =========================
 
           await DBHelper.insertTimeline({
+
             'number': number,
             'name': name,
             'rank': rank,
             'unit': unit,
-            'status': status.isEmpty ? "-" : status,
+
+            'status': status.isEmpty
+                ? "-"
+                : status,
+
             'month': selectedMonth,
             'year': selectedYear,
           });
@@ -80,31 +134,63 @@ class ExcelImportService {
         }
       }
 
+      // =========================
+      // لا توجد بيانات
+      // =========================
+
       if (processedCount == 0) {
+
         return {
           "success": false,
-          "message": "لم يتم العثور على بيانات في الملف"
+          "message":
+              "لم يتم العثور على بيانات داخل الملف"
         };
       }
 
+      // =========================
+      // نجاح
+      // =========================
+
       return {
+
         "success": true,
-        "message": "تم استيراد $processedCount سجل بنجاح"
+
+        "message":
+            "تم استيراد $processedCount سجل بنجاح"
       };
 
     } catch (e) {
+
       return {
+
         "success": false,
-        "message": "خطأ: $e"
+
+        "message":
+            "حدث خطأ أثناء الاستيراد: $e"
       };
     }
   }
 
-  static Future<bool> deleteFullMonth(String month, String year) async {
+  // =========================
+  // حذف شهر كامل
+  // =========================
+
+  static Future<bool> deleteFullMonth(
+    String month,
+    String year,
+  ) async {
+
     try {
-      await DBHelper.deleteMonth(month, year);
+
+      await DBHelper.deleteMonth(
+        month,
+        year,
+      );
+
       return true;
+
     } catch (e) {
+
       return false;
     }
   }
