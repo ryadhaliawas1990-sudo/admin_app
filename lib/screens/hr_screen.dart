@@ -21,6 +21,7 @@ class HrScreen extends StatefulWidget {
 }
 
 class _HrScreenState extends State<HrScreen> {
+
   String selectedYear = "2026";
 
   String fromMonth = "يناير";
@@ -81,15 +82,21 @@ class _HrScreenState extends State<HrScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("إدارة الموارد البشرية"),
+        title: const Text(
+          "إدارة الموارد البشرية",
+        ),
         centerTitle: true,
       ),
+
       body: Directionality(
         textDirection: TextDirection.rtl,
+
         child: Padding(
           padding: const EdgeInsets.all(16),
+
           child: ListView(
             children: [
 
@@ -103,8 +110,10 @@ class _HrScreenState extends State<HrScreen> {
 
               Card(
                 color: Colors.blue.shade50,
+
                 child: Padding(
                   padding: const EdgeInsets.all(12),
+
                   child: Column(
                     children: [
 
@@ -112,22 +121,32 @@ class _HrScreenState extends State<HrScreen> {
                         children: [
 
                           Expanded(
-                            child: DropdownButtonFormField<String>(
+                            child:
+                                DropdownButtonFormField<String>(
+
                               initialValue: importYear,
-                              decoration: const InputDecoration(
+
+                              decoration:
+                                  const InputDecoration(
                                 labelText: "السنة",
-                                border: OutlineInputBorder(),
+                                border:
+                                    OutlineInputBorder(),
                               ),
+
                               items: years
                                   .map(
-                                    (y) => DropdownMenuItem(
+                                    (y) =>
+                                        DropdownMenuItem(
                                       value: y,
                                       child: Text(y),
                                     ),
                                   )
                                   .toList(),
+
                               onChanged: (v) {
+
                                 if (v != null) {
+
                                   setState(() {
                                     importYear = v;
                                   });
@@ -139,25 +158,36 @@ class _HrScreenState extends State<HrScreen> {
                           const SizedBox(width: 10),
 
                           Expanded(
-                            child: DropdownButtonFormField<String>(
+                            child:
+                                DropdownButtonFormField<String>(
+
                               initialValue: importMonth,
-                              decoration: const InputDecoration(
+
+                              decoration:
+                                  const InputDecoration(
                                 labelText: "الشهر",
-                                border: OutlineInputBorder(),
+                                border:
+                                    OutlineInputBorder(),
                               ),
+
                               items: List.generate(
                                 12,
                                 (i) => (i + 1).toString(),
                               )
                                   .map(
-                                    (m) => DropdownMenuItem(
+                                    (m) =>
+                                        DropdownMenuItem(
                                       value: m,
-                                      child: Text("شهر $m"),
+                                      child:
+                                          Text("شهر $m"),
                                     ),
                                   )
                                   .toList(),
+
                               onChanged: (v) {
+
                                 if (v != null) {
+
                                   setState(() {
                                     importMonth = v;
                                   });
@@ -173,15 +203,21 @@ class _HrScreenState extends State<HrScreen> {
                       isImporting
                           ? const CircularProgressIndicator()
                           : ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
+
+                              style:
+                                  ElevatedButton.styleFrom(
                                 backgroundColor:
                                     Colors.green.shade700,
                               ),
-                              onPressed: _pickAndImportExcel,
+
+                              onPressed:
+                                  _pickAndImportExcel,
+
                               icon: const Icon(
                                 Icons.upload_file,
                                 color: Colors.white,
                               ),
+
                               label: const Text(
                                 "رفع ملف Excel",
                                 style: TextStyle(
@@ -197,7 +233,7 @@ class _HrScreenState extends State<HrScreen> {
               const SizedBox(height: 25),
 
               // =========================
-              // التقرير
+              // إنشاء التقرير
               // =========================
 
               _buildSectionTitle(
@@ -205,11 +241,14 @@ class _HrScreenState extends State<HrScreen> {
               ),
 
               DropdownButtonFormField<String>(
+
                 initialValue: selectedYear,
+
                 decoration: const InputDecoration(
                   labelText: "السنة",
                   border: OutlineInputBorder(),
                 ),
+
                 items: years
                     .map(
                       (y) => DropdownMenuItem(
@@ -218,8 +257,11 @@ class _HrScreenState extends State<HrScreen> {
                       ),
                     )
                     .toList(),
+
                 onChanged: (v) {
+
                   if (v != null) {
+
                     setState(() {
                       selectedYear = v;
                     });
@@ -231,10 +273,13 @@ class _HrScreenState extends State<HrScreen> {
 
               TextField(
                 controller: searchController,
+
                 decoration: const InputDecoration(
-                  labelText: "بحث بالرقم أو الاسم",
+                  labelText:
+                      "بحث بالرقم أو الاسم",
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon:
+                      Icon(Icons.search),
                 ),
               ),
 
@@ -244,22 +289,32 @@ class _HrScreenState extends State<HrScreen> {
                 children: [
 
                   Expanded(
-                    child: DropdownButtonFormField<String>(
+                    child:
+                        DropdownButtonFormField<String>(
+
                       initialValue: fromMonth,
-                      decoration: const InputDecoration(
+
+                      decoration:
+                          const InputDecoration(
                         labelText: "من شهر",
-                        border: OutlineInputBorder(),
+                        border:
+                            OutlineInputBorder(),
                       ),
+
                       items: months
                           .map(
-                            (m) => DropdownMenuItem(
+                            (m) =>
+                                DropdownMenuItem(
                               value: m,
                               child: Text(m),
                             ),
                           )
                           .toList(),
+
                       onChanged: (v) {
+
                         if (v != null) {
+
                           setState(() {
                             fromMonth = v;
                           });
@@ -271,22 +326,32 @@ class _HrScreenState extends State<HrScreen> {
                   const SizedBox(width: 10),
 
                   Expanded(
-                    child: DropdownButtonFormField<String>(
+                    child:
+                        DropdownButtonFormField<String>(
+
                       initialValue: toMonth,
-                      decoration: const InputDecoration(
+
+                      decoration:
+                          const InputDecoration(
                         labelText: "إلى شهر",
-                        border: OutlineInputBorder(),
+                        border:
+                            OutlineInputBorder(),
                       ),
+
                       items: months
                           .map(
-                            (m) => DropdownMenuItem(
+                            (m) =>
+                                DropdownMenuItem(
                               value: m,
                               child: Text(m),
                             ),
                           )
                           .toList(),
+
                       onChanged: (v) {
+
                         if (v != null) {
+
                           setState(() {
                             toMonth = v;
                           });
@@ -300,14 +365,21 @@ class _HrScreenState extends State<HrScreen> {
               const SizedBox(height: 20),
 
               ElevatedButton(
-                style: ElevatedButton.styleFrom(
+
+                style:
+                    ElevatedButton.styleFrom(
                   backgroundColor:
                       Colors.blue.shade700,
-                  padding: const EdgeInsets.symmetric(
+
+                  padding:
+                      const EdgeInsets.symmetric(
                     vertical: 15,
                   ),
                 ),
-                onPressed: _generateFilteredReport,
+
+                onPressed:
+                    _generateFilteredReport,
+
                 child: const Text(
                   "إنشاء التقرير PDF",
                   style: TextStyle(
@@ -324,12 +396,15 @@ class _HrScreenState extends State<HrScreen> {
   }
 
   Widget _buildSectionTitle(String title) {
+
     return Padding(
       padding: const EdgeInsets.symmetric(
         vertical: 10,
       ),
+
       child: Text(
         title,
+
         style: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.bold,
@@ -344,6 +419,7 @@ class _HrScreenState extends State<HrScreen> {
   // =========================
 
   Future<void> _pickAndImportExcel() async {
+
     try {
 
       FilePickerResult? result =
@@ -384,12 +460,12 @@ class _HrScreenState extends State<HrScreen> {
 
       List<Map<String, dynamic>> rows = [];
 
-      // بدء القراءة من الصف الثاني
       for (int i = 1; i < sheet.rows.length; i++) {
 
         final row = sheet.rows[i];
 
         rows.add({
+
           "number":
               row.length > 0
                   ? row[0]?.value
@@ -431,6 +507,7 @@ class _HrScreenState extends State<HrScreen> {
       }
 
       if (rows.isEmpty) {
+
         throw Exception(
           "الملف فارغ",
         );
@@ -446,6 +523,7 @@ class _HrScreenState extends State<HrScreen> {
 
       ScaffoldMessenger.of(context)
           .showSnackBar(
+
         const SnackBar(
           backgroundColor: Colors.green,
           content: Text(
@@ -460,6 +538,7 @@ class _HrScreenState extends State<HrScreen> {
 
       ScaffoldMessenger.of(context)
           .showSnackBar(
+
         SnackBar(
           backgroundColor: Colors.red,
           content: Text(
@@ -471,6 +550,7 @@ class _HrScreenState extends State<HrScreen> {
     } finally {
 
       if (mounted) {
+
         setState(() {
           isImporting = false;
         });
@@ -484,13 +564,13 @@ class _HrScreenState extends State<HrScreen> {
 
   Future<void> _generateFilteredReport() async {
 
-    int startMonth =
+    final startMonth =
         monthNumbers[fromMonth] ?? 1;
 
-    int endMonth =
+    final endMonth =
         monthNumbers[toMonth] ?? 12;
 
-    String query =
+    final query =
         searchController.text.trim();
 
     final db = await DBHelper.database;
@@ -510,19 +590,18 @@ class _HrScreenState extends State<HrScreen> {
       records = await db.query(
         'timeline',
         where:
-            'year = ? AND (number = ? OR name LIKE ?)',
+            'year = ? AND (number LIKE ? OR name LIKE ?)',
         whereArgs: [
           selectedYear,
-          query,
+          '%$query%',
           '%$query%',
         ],
       );
     }
 
-    final filtered =
-        records.where((row) {
+    final filtered = records.where((row) {
 
-      int month = int.tryParse(
+      final month = int.tryParse(
             row['month'].toString(),
           ) ??
           0;
@@ -538,9 +617,10 @@ class _HrScreenState extends State<HrScreen> {
 
       ScaffoldMessenger.of(context)
           .showSnackBar(
+
         const SnackBar(
           content: Text(
-            "لا توجد بيانات",
+            "لا توجد بيانات مطابقة",
           ),
         ),
       );
@@ -553,26 +633,50 @@ class _HrScreenState extends State<HrScreen> {
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
+
         build: (context) {
 
           return pw.Directionality(
             textDirection:
                 pw.TextDirection.rtl,
+
             child: pw.Column(
+              crossAxisAlignment:
+                  pw.CrossAxisAlignment.start,
+
               children: [
 
-                pw.Text(
-                  "تقرير الأفراد",
-                  style: pw.TextStyle(
-                    fontSize: 20,
-                    fontWeight:
-                        pw.FontWeight.bold,
+                pw.Center(
+                  child: pw.Text(
+                    "تقرير الموارد البشرية",
+
+                    style: pw.TextStyle(
+                      fontSize: 20,
+                      fontWeight:
+                          pw.FontWeight.bold,
+                    ),
                   ),
                 ),
 
                 pw.SizedBox(height: 20),
 
+                pw.Text(
+                  "السنة: $selectedYear",
+                ),
+
+                pw.Text(
+                  "الفترة: $fromMonth → $toMonth",
+                ),
+
+                if (query.isNotEmpty)
+                  pw.Text(
+                    "البحث: $query",
+                  ),
+
+                pw.SizedBox(height: 15),
+
                 pw.TableHelper.fromTextArray(
+
                   headers: [
                     "الرقم",
                     "الاسم",
@@ -584,30 +688,57 @@ class _HrScreenState extends State<HrScreen> {
                   ],
 
                   data: filtered.map((r) {
+
                     return [
+
                       r['number']
                               ?.toString() ??
                           '',
+
                       r['name']
                               ?.toString() ??
                           '',
+
                       r['rank']
                               ?.toString() ??
                           '',
+
                       r['unit']
                               ?.toString() ??
                           '',
+
                       r['status']
                               ?.toString() ??
                           '',
+
                       r['month']
                               ?.toString() ??
                           '',
+
                       r['year']
                               ?.toString() ??
                           '',
                     ];
+
                   }).toList(),
+                ),
+
+                pw.SizedBox(height: 30),
+
+                pw.Row(
+                  mainAxisAlignment:
+                      pw.MainAxisAlignment.spaceBetween,
+
+                  children: [
+
+                    pw.Text(
+                      "التوقيع: __________",
+                    ),
+
+                    pw.Text(
+                      "التوقيع: __________",
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -628,5 +759,18 @@ class _HrScreenState extends State<HrScreen> {
     );
 
     await OpenFile.open(file.path);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+
+      const SnackBar(
+        backgroundColor: Colors.green,
+        content: Text(
+          "تم إنشاء التقرير بنجاح",
+        ),
+      ),
+    );
   }
 }
