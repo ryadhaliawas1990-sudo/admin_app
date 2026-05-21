@@ -25,7 +25,6 @@ class ExcelImportService {
       }
 
       final file = result.files.first;
-
       final bytes = file.bytes;
 
       if (bytes == null) {
@@ -37,34 +36,25 @@ class ExcelImportService {
 
       final excel = Excel.decodeBytes(bytes);
 
-      // حذف بيانات الشهر القديمة
-      await DBHelper.deleteMonthData(selectedMonth, selectedYear);
+      // حذف بيانات الشهر القديمة (نستخدم الدالة الموجودة فعليًا في DBHelper)
+      await DBHelper.deleteMonth(selectedMonth, selectedYear);
 
       int processedCount = 0;
 
       for (var tableName in excel.tables.keys) {
 
         final sheet = excel.tables[tableName];
-
         if (sheet == null) continue;
 
         for (int i = 1; i < sheet.rows.length; i++) {
 
           final row = sheet.rows[i];
-
           if (row.isEmpty) continue;
 
-          // دالة آمنة لقراءة الخلية
           String readCell(int index) {
-
             if (index >= row.length) return "";
-
             final cell = row[index];
-
-            if (cell == null || cell.value == null) {
-              return "";
-            }
-
+            if (cell == null || cell.value == null) return "";
             return cell.value.toString().trim();
           }
 
@@ -74,15 +64,8 @@ class ExcelImportService {
           final unit   = readCell(4);
           final status = readCell(5);
 
-          // للتشخيص
-          print("IMPORT => number=$number | name=$name");
+          if (number.isEmpty && name.isEmpty) continue;
 
-          // تجاهل الصفوف الفارغة
-          if (number.isEmpty && name.isEmpty) {
-            continue;
-          }
-
-          // إدخال البيانات
           await DBHelper.insertTimeline({
             'number': number,
             'name': name,
@@ -98,17 +81,11 @@ class ExcelImportService {
       }
 
       if (processedCount == 0) {
-
         return {
           "success": false,
-          "message": "لم يتم العثور على أي بيانات داخل ملف الإكسل"
+          "message": "لم يتم العثور على بيانات في الملف"
         };
       }
-
-      await DBHelper.markMonthImported(
-        selectedMonth,
-        selectedYear,
-      );
 
       return {
         "success": true,
@@ -116,35 +93,18 @@ class ExcelImportService {
       };
 
     } catch (e) {
-
       return {
         "success": false,
-        "message": "حدث خطأ أثناء المعالجة: $e"
+        "message": "خطأ: $e"
       };
     }
   }
 
-  static Future<bool> deleteFullMonth(
-      String month,
-      String year,
-      ) async {
-
+  static Future<bool> deleteFullMonth(String month, String year) async {
     try {
-
-      final db = await DBHelper.database;
-
-      await DBHelper.deleteMonthData(month, year);
-
-      await db.delete(
-        'imported_months',
-        where: 'month = ? AND year = ?',
-        whereArgs: [month, year],
-      );
-
+      await DBHelper.deleteMonth(month, year);
       return true;
-
     } catch (e) {
-
       return false;
     }
   }

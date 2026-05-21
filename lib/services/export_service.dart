@@ -21,7 +21,7 @@ class ExportService {
     final db = await DBHelper.database;
 
     String query = "SELECT * FROM timeline WHERE 1=1";
-    List<dynamic> args = [];
+    List args = [];
 
     if (year != null) {
       query += " AND year = ?";
@@ -53,7 +53,7 @@ class ExportService {
       TextCellValue("السنة"),
     ]);
 
-    for (final e in data) {
+    for (var e in data) {
       sheet.appendRow([
         TextCellValue((e['number'] ?? '').toString()),
         TextCellValue((e['name'] ?? '').toString()),
@@ -74,6 +74,7 @@ class ExportService {
     }
 
     await file.writeAsBytes(bytes);
+
     await OpenFile.open(file.path);
 
     return file.path;
@@ -92,7 +93,7 @@ class ExportService {
     final db = await DBHelper.database;
 
     String query = "SELECT * FROM timeline WHERE 1=1";
-    List<dynamic> args = [];
+    List args = [];
 
     if (year != null) {
       query += " AND year = ?";
@@ -140,7 +141,7 @@ class ExportService {
               pw.SizedBox(height: 10),
 
               pw.TableHelper.fromTextArray(
-                headers:  [
+                headers: [
                   "الرقم",
                   "الاسم",
                   "الرتبة",
@@ -149,22 +150,24 @@ class ExportService {
                   "الشهر",
                   "السنة",
                 ],
-                data: data.map((e) => [
-                  (e['number'] ?? '').toString(),
-                  (e['name'] ?? '').toString(),
-                  (e['rank'] ?? '').toString(),
-                  (e['unit'] ?? '').toString(),
-                  (e['status'] ?? '').toString(),
-                  (e['month'] ?? '').toString(),
-                  (e['year'] ?? '').toString(),
-                ]).toList(),
+                data: data.map((e) {
+                  return [
+                    (e['number'] ?? '').toString(),
+                    (e['name'] ?? '').toString(),
+                    (e['rank'] ?? '').toString(),
+                    (e['unit'] ?? '').toString(),
+                    (e['status'] ?? '').toString(),
+                    (e['month'] ?? '').toString(),
+                    (e['year'] ?? '').toString(),
+                  ];
+                }).toList(),
               ),
 
-              pw.Spacer(),
+              pw.SizedBox(height: 20),
 
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children:  [
+                children: [
                   pw.Text("التوقيع: __________"),
                   pw.Text("التوقيع: __________"),
                 ],
@@ -179,6 +182,7 @@ class ExportService {
     final file = File("${dir.path}/report.pdf");
 
     await file.writeAsBytes(await pdf.save());
+
     await OpenFile.open(file.path);
 
     return file.path;

@@ -1,0 +1,75 @@
+   Woah! You appear to be trying to run flutter as root.
+   We strongly recommend running the flutter tool without superuser privileges.
+  /
+📎
+Analyzing admin_app...                                          
+
+   info • 'Table.fromTextArray' is deprecated and shouldn't be used. Use TableHelper.fromTextArray() instead • lib/export/batch_timeline_pdf.dart:64:17 • deprecated_member_use
+  error • The method 'getPeople' isn't defined for the type 'DBHelper' • lib/export/command_comparison_pdf.dart:20:35 • undefined_method
+  error • 2 positional arguments expected by 'getByMonth', but 1 found • lib/export/command_comparison_pdf.dart:33:54 • not_enough_positional_arguments
+   info • Unnecessary use of 'toList' in a spread • lib/export/command_comparison_pdf.dart:131:22 • unnecessary_to_list_in_spreads
+  error • The method 'getPeople' isn't defined for the type 'DBHelper' • lib/export/command_report_pdf.dart:19:35 • undefined_method
+  error • 2 positional arguments expected by 'getByMonth', but 1 found • lib/export/command_report_pdf.dart:30:54 • not_enough_positional_arguments
+   info • Unnecessary use of 'toList' in a spread • lib/export/command_report_pdf.dart:111:22 • unnecessary_to_list_in_spreads
+  error • Target of URI doesn't exist: '../core/comparison_engine.dart' • lib/export/comparison_excel_export.dart:6:8 • uri_does_not_exist
+  error • Undefined name 'ComparisonEngine' • lib/export/comparison_excel_export.dart:16:15 • undefined_identifier
+   info • 'Table.fromTextArray' is deprecated and shouldn't be used. Use TableHelper.fromTextArray() instead • lib/export/comparison_pdf.dart:120:13 • deprecated_member_use
+  error • The argument type 'Object' can't be assigned to the parameter type 'String'.  • lib/export/export_service.dart:58:23 • argument_type_not_assignable
+  error • The argument type 'Object' can't be assigned to the parameter type 'String'.  • lib/export/export_service.dart:59:23 • argument_type_not_assignable
+  error • The argument type 'Object' can't be assigned to the parameter type 'String'.  • lib/export/export_service.dart:60:23 • argument_type_not_assignable
+  error • The argument type 'Object' can't be assigned to the parameter type 'String'.  • lib/export/export_service.dart:61:23 • argument_type_not_assignable
+  error • The argument type 'Object' can't be assigned to the parameter type 'String'.  • lib/export/export_service.dart:62:23 • argument_type_not_assignable
+  error • The argument type 'Object' can't be assigned to the parameter type 'String'.  • lib/export/export_service.dart:63:23 • argument_type_not_assignable
+  error • The argument type 'Object' can't be assigned to the parameter type 'String'.  • lib/export/export_service.dart:64:23 • argument_type_not_assignable
+   info • 'Table.fromTextArray' is deprecated and shouldn't be used. Use TableHelper.fromTextArray() instead • lib/export/export_service.dart:140:15 • deprecated_member_use
+   info • 'convertHtml' is deprecated and shouldn't be used. Please use another method to create your PDF document • lib/export/final_report_pdf.dart:71:50 • deprecated_member_use
+warning • Unused import: 'dart:io' • lib/export/monthly_comparison_pdf.dart:1:8 • unused_import
+   info • 'Table.fromTextArray' is deprecated and shouldn't be used. Use TableHelper.fromTextArray() instead • lib/export/person_timeline_pdf.dart:70:15 • deprecated_member_use
+   info • 'Table.fromTextArray' is deprecated and shouldn't be used. Use TableHelper.fromTextArray() instead • lib/export/system_full_report.dart:28:13 • deprecated_member_use
+warning • Unused import: 'package:flutter/material.dart' • lib/export/word_export.dart:1:8 • unused_import
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/advanced_filter_screen.dart:101:15 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/advanced_filter_screen.dart:114:15 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/advanced_filter_screen.dart:127:15 • deprecated_member_use
+   info • Don't invoke 'print' in production code • lib/screens/dashboard_screen.dart:73:7 • avoid_print
+  error • Target of URI doesn't exist: '../core/excel_reader.dart' • lib/screens/hr_screen.dart:11:8 • uri_does_not_exist
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/hr_screen.dart:62:31 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/hr_screen.dart:71:31 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/hr_screen.dart:99:17 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/hr_screen.dart:114:23 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/hr_screen.dart:123:23 • deprecated_member_use
+  error • Undefined name 'ExcelReader' • lib/screens/hr_screen.dart:167:48 • undefined_identifier
+   info • Don't use 'BuildContext's across async gaps • lib/screens/hr_screen.dart:172:30 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/hr_screen.dart:175:28 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/hr_screen.dart:199:28 • use_build_context_synchronously
+  error • A value of type 'List<String>' can't be assigned to a variable of type 'List<Map<String, dynamic>>' • lib/screens/import_screen.dart:31:28 • invalid_assignment
+   info • Don't use 'BuildContext's across async gaps • lib/screens/import_screen.dart:77:30 • use_build_context_synchronously
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/import_screen.dart:98:21 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/import_screen.dart:107:21 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/import_timeline_screen.dart:95:15 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/import_timeline_screen.dart:114:15 • deprecated_member_use
+  error • The method 'getTimelinePaged' isn't defined for the type 'DBHelper' • lib/screens/live_search_screen.dart:29:33 • undefined_method
+  error • The method 'advancedSearch' isn't defined for the type 'DBHelper' • lib/screens/live_search_screen.dart:49:35 • undefined_method
+  error • Target of URI doesn't exist: 'comparison_screen.dart' • lib/screens/main_app.dart:5:8 • uri_does_not_exist
+  error • The method 'ComparisonScreen' isn't defined for the type '_MainAppState' • lib/screens/main_app.dart:22:5 • undefined_method
+  error • The values in a const list literal must be constants • lib/screens/main_app.dart:22:5 • non_constant_list_element
+  error • The argument type 'String' can't be assigned to the parameter type 'int'.  • lib/screens/manage_individual_screen.dart:44:43 • argument_type_not_assignable
+  error • Too many positional arguments: 2 expected, but 4 found • lib/screens/manage_individual_screen.dart:44:89 • extra_positional_arguments
+   info • Don't use 'BuildContext's across async gaps • lib/screens/manage_individual_screen.dart:45:30 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/manage_individual_screen.dart:48:30 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/manage_individual_screen.dart:52:28 • use_build_context_synchronously
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/manage_individual_screen.dart:71:65 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/manage_individual_screen.dart:79:65 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/manage_individual_screen.dart:81:65 • deprecated_member_use
+  error • Target of URI doesn't exist: '../features/pdf/person_timeline_pdf.dart' • lib/screens/person_timeline_screen.dart:4:8 • uri_does_not_exist
+  error • Undefined name 'PersonTimelinePdf' • lib/screens/person_timeline_screen.dart:52:11 • undefined_identifier
+  error • The method 'getTimelinePaged' isn't defined for the type 'DBHelper' • lib/screens/pro_search_screen.dart:31:33 • undefined_method
+  error • The method 'advancedSearch' isn't defined for the type 'DBHelper' • lib/screens/pro_search_screen.dart:53:35 • undefined_method
+  error • The method 'getPeople' isn't defined for the type 'DBHelper' • lib/screens/report_screen.dart:32:33 • undefined_method
+  error • The named parameter 'months' is required, but there's no corresponding argument • lib/screens/report_screen.dart:69:26 • missing_required_argument
+  error • The named parameter 'people' is required, but there's no corresponding argument • lib/screens/report_screen.dart:69:26 • missing_required_argument
+  error • Too many positional arguments: 0 expected, but 1 found • lib/screens/report_screen.dart:70:7 • extra_positional_arguments_could_be_named
+  error • The named parameter 'numbers' isn't defined • lib/screens/report_screen.dart:71:7 • undefined_named_parameter
+  error • The method 'getPeople' isn't defined for the type 'DBHelper' • lib/screens/reports_screen.dart:21:33 • undefined_method
+   info • Don't invoke 'print' in production code • lib/services/excel_import_service.dart:78:11 • avoid_print
+
+67 issues found. (ran in 51.5s)

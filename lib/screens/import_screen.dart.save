@@ -1,0 +1,42 @@
+
+
+
+
+
+ĵ style: const TextStyle(
+                                      const 
+                                      TextStyle(
+                                    fontWeight: 
+                                        FontWeight.bold,
+                                  ),
+                                ),
+
+                                trailing:
+                                    IconButton(
+                                  icon:
+                                      const Icon(
+                                    Icons
+                                        .delete_forever,
+                                    color:
+                                        Colors.red,
+                                  ),
+
+                                  onPressed:
+                                      () {
+                                    _deleteMonth(
+                                      month,
+                                      year,
+                                    );
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

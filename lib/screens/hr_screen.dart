@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:file_picker/file_picker.dart';
+
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:excel/excel.dart'; // حقن مكتبة الإكسل لمعالجة الملفات برمجياً
+
+import 'package:excel/excel.dart';
 
 import '../db/db_helper.dart';
-import '../core/excel_reader.dart';
 import '../services/excel_to_db_service.dart';
 
 class HrScreen extends StatefulWidget {
@@ -18,121 +20,301 @@ class HrScreen extends StatefulWidget {
   State<HrScreen> createState() => _HrScreenState();
 }
 
-
 class _HrScreenState extends State<HrScreen> {
   String selectedYear = "2026";
+
   String fromMonth = "يناير";
   String toMonth = "ديسمبر";
-  final TextEditingController searchController = TextEditingController();
+
+  final TextEditingController searchController =
+      TextEditingController();
 
   String importYear = "2026";
   String importMonth = "1";
+
   bool isImporting = false;
 
-  final List<String> years = ["2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030"];
-  final List<String> months = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+  final List<String> years = [
+    "2019",
+    "2020",
+    "2021",
+    "2022",
+    "2023",
+    "2024",
+    "2025",
+    "2026",
+    "2027",
+    "2028",
+    "2029",
+    "2030"
+  ];
+
+  final List<String> months = [
+    "يناير",
+    "فبراير",
+    "مارس",
+    "أبريل",
+    "مايو",
+    "يونيو",
+    "يوليو",
+    "أغسطس",
+    "سبتمبر",
+    "أكتوبر",
+    "نوفمبر",
+    "ديسمبر"
+  ];
 
   final Map<String, int> monthNumbers = {
-    "يناير": 1, "فبراير": 2, "مارس": 3, "أبريل": 4, "مايو": 5, "يونيو": 6,
-    "يوليو": 7, "أغسطس": 8, "سبتمبر": 9, "أكتوبر": 10, "نوفمبر": 11, "ديسمبر": 12
+    "يناير": 1,
+    "فبراير": 2,
+    "مارس": 3,
+    "أبريل": 4,
+    "مايو": 5,
+    "يونيو": 6,
+    "يوليو": 7,
+    "أغسطس": 8,
+    "سبتمبر": 9,
+    "أكتوبر": 10,
+    "نوفمبر": 11,
+    "ديسمبر": 12,
   };
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("إدارة الموارد البشرية والأفراد"), centerTitle: true),
+      appBar: AppBar(
+        title: const Text("إدارة الموارد البشرية"),
+        centerTitle: true,
+      ),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: ListView(
             children: [
-              // 📥 استيراد القوة البشرية
-              _buildSectionTitle("📥 استيراد كشوفات الأفراد الدورية (Excel)"),
+
+              // =========================
+              // استيراد الإكسل
+              // =========================
+
+              _buildSectionTitle(
+                "📥 استيراد كشوفات الأفراد",
+              ),
+
               Card(
                 color: Colors.blue.shade50,
                 child: Padding(
-                  padding: const EdgeInsets.all(12.0),
+                  padding: const EdgeInsets.all(12),
                   child: Column(
                     children: [
+
                       Row(
                         children: [
+
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: importYear,
-                              decoration: const InputDecoration(labelText: "سنة الكشف", border: OutlineInputBorder()),
-                              items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
-                              onChanged: (val) => setState(() => importYear = val!),
+                              initialValue: importYear,
+                              decoration: const InputDecoration(
+                                labelText: "السنة",
+                                border: OutlineInputBorder(),
+                              ),
+                              items: years
+                                  .map(
+                                    (y) => DropdownMenuItem(
+                                      value: y,
+                                      child: Text(y),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) {
+                                if (v != null) {
+                                  setState(() {
+                                    importYear = v;
+                                  });
+                                }
+                              },
                             ),
                           ),
+
                           const SizedBox(width: 10),
+
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: importMonth,
-                              decoration: const InputDecoration(labelText: "شهر الكشف (رقم)", border: OutlineInputBorder()),
-                              items: List.generate(12, (i) => (i + 1).toString()).map((m) => DropdownMenuItem(value: m, child: Text("شهر $m"))).toList(),
-                              onChanged: (val) => setState(() => importMonth = val!),
+                              initialValue: importMonth,
+                              decoration: const InputDecoration(
+                                labelText: "الشهر",
+                                border: OutlineInputBorder(),
+                              ),
+                              items: List.generate(
+                                12,
+                                (i) => (i + 1).toString(),
+                              )
+                                  .map(
+                                    (m) => DropdownMenuItem(
+                                      value: m,
+                                      child: Text("شهر $m"),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) {
+                                if (v != null) {
+                                  setState(() {
+                                    importMonth = v;
+                                  });
+                                }
+                              },
                             ),
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 15),
+
                       isImporting
-                        ? const CircularProgressIndicator()
-                        : ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700),
-                            onPressed: _pickAndImportExcel,
-                            icon: const Icon(Icons.file_upload, color: Colors.white),
-                            label: const Text("رفع ملف كشف الأفراد", style: TextStyle(color: Colors.white)),
-                          ),
+                          ? const CircularProgressIndicator()
+                          : ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    Colors.green.shade700,
+                              ),
+                              onPressed: _pickAndImportExcel,
+                              icon: const Icon(
+                                Icons.upload_file,
+                                color: Colors.white,
+                              ),
+                              label: const Text(
+                                "رفع ملف Excel",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
                     ],
                   ),
                 ),
               ),
 
-              const SizedBox(height: 20),
-              const Divider(thickness: 2),
+              const SizedBox(height: 25),
 
-              // 📊 المباينة الدورية للأفراد
-              _buildSectionTitle("📊 مباينة سجل الحالة (من شهر إلى شهر)"),
-              DropdownButtonFormField<String>(
-                value: selectedYear,
-                decoration: const InputDecoration(labelText: "سنة البحث", border: OutlineInputBorder()),
-                items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
-                onChanged: (val) => setState(() => selectedYear = val!),
+              // =========================
+              // التقرير
+              // =========================
+
+              _buildSectionTitle(
+                "📊 إنشاء تقرير PDF",
               ),
+
+              DropdownButtonFormField<String>(
+                initialValue: selectedYear,
+                decoration: const InputDecoration(
+                  labelText: "السنة",
+                  border: OutlineInputBorder(),
+                ),
+                items: years
+                    .map(
+                      (y) => DropdownMenuItem(
+                        value: y,
+                        child: Text(y),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) {
+                    setState(() {
+                      selectedYear = v;
+                    });
+                  }
+                },
+              ),
+
               const SizedBox(height: 15),
+
               TextField(
                 controller: searchController,
-                decoration: const InputDecoration(labelText: "رقم الفرد أو الاسم لفرز حالته", border: OutlineInputBorder(), prefixIcon: Icon(Icons.search)),
+                decoration: const InputDecoration(
+                  labelText: "بحث بالرقم أو الاسم",
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.search),
+                ),
               ),
+
               const SizedBox(height: 15),
+
               Row(
                 children: [
+
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: fromMonth,
-                      decoration: const InputDecoration(labelText: "من شهر", border: OutlineInputBorder()),
-                      items: months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
-                      onChanged: (val) => setState(() => fromMonth = val!),
+                      initialValue: fromMonth,
+                      decoration: const InputDecoration(
+                        labelText: "من شهر",
+                        border: OutlineInputBorder(),
+                      ),
+                      items: months
+                          .map(
+                            (m) => DropdownMenuItem(
+                              value: m,
+                              child: Text(m),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) {
+                          setState(() {
+                            fromMonth = v;
+                          });
+                        }
+                      },
                     ),
                   ),
+
                   const SizedBox(width: 10),
+
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: toMonth,
-                      decoration: const InputDecoration(labelText: "إلى شهر", border: OutlineInputBorder()),
-                      items: months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
-                      onChanged: (val) => setState(() => toMonth = val!),
+                      initialValue: toMonth,
+                      decoration: const InputDecoration(
+                        labelText: "إلى شهر",
+                        border: OutlineInputBorder(),
+                      ),
+                      items: months
+                          .map(
+                            (m) => DropdownMenuItem(
+                              value: m,
+                              child: Text(m),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) {
+                          setState(() {
+                            toMonth = v;
+                          });
+                        }
+                      },
                     ),
                   ),
                 ],
               ),
+
               const SizedBox(height: 20),
+
               ElevatedButton(
-                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 15), backgroundColor: Colors.blue.shade700),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      Colors.blue.shade700,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 15,
+                  ),
+                ),
                 onPressed: _generateFilteredReport,
-                child: const Text("عرض المباينة وتوليد PDF للأفراد", style: TextStyle(fontSize: 16, color: Colors.white)),
+                child: const Text(
+                  "إنشاء التقرير PDF",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                ),
               ),
             ],
           ),
@@ -143,89 +325,308 @@ class _HrScreenState extends State<HrScreen> {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.indigo)),
+      padding: const EdgeInsets.symmetric(
+        vertical: 10,
+      ),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.indigo,
+        ),
+      ),
     );
   }
 
-  // الدالة المصححة بالكامل لتتوافق مع دالة ملف excel_reader.dart الحقيقية
+  // =========================
+  // استيراد الإكسل
+  // =========================
+
   Future<void> _pickAndImportExcel() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['xlsx', 'xls']);
-      if (result != null && result.files.single.path != null) {
-        setState(() => isImporting = true);
-        var bytes = File(result.files.single.path!).readAsBytesSync();
-        var excel = Excel.decodeBytes(bytes);
 
-        // جلب أول صفحة (Sheet) من الملف تلقائياً
-        String firstSheetName = excel.tables.keys.first;
-        var sheet = excel.tables[firstSheetName];
+      FilePickerResult? result =
+          await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx', 'xls'],
+      );
 
-        if (sheet == null) throw Exception("لا توجد صفحات داخل ملف الإكسل");
-
-        // استدعاء الدالة الصحيحة والموجودة فعلياً في كودك: readData
-        List<Map<String, dynamic>> excelData = ExcelReader.readData(sheet);
-
-        if (excelData.isEmpty) throw Exception("الملف فارغ أو غير مدعوم التنسيق");
-
-        await ExcelToDbService.import(excelData, importMonth, importYear);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: Colors.green, content: Text("تم استيراد بيانات الأفراد بنجاح")));
+      if (result == null ||
+          result.files.single.path == null) {
+        return;
       }
+
+      setState(() {
+        isImporting = true;
+      });
+
+      final file =
+          File(result.files.single.path!);
+
+      final bytes =
+          await file.readAsBytes();
+
+      final excel =
+          Excel.decodeBytes(bytes);
+
+      final sheetName =
+          excel.tables.keys.first;
+
+      final sheet =
+          excel.tables[sheetName];
+
+      if (sheet == null) {
+        throw Exception(
+          "لا توجد بيانات داخل الملف",
+        );
+      }
+
+      List<Map<String, dynamic>> rows = [];
+
+      // بدء القراءة من الصف الثاني
+      for (int i = 1; i < sheet.rows.length; i++) {
+
+        final row = sheet.rows[i];
+
+        rows.add({
+          "number":
+              row.length > 0
+                  ? row[0]?.value
+                          ?.toString() ??
+                      ""
+                  : "",
+
+          "name":
+              row.length > 1
+                  ? row[1]?.value
+                          ?.toString() ??
+                      ""
+                  : "",
+
+          "rank":
+              row.length > 2
+                  ? row[2]?.value
+                          ?.toString() ??
+                      ""
+                  : "",
+
+          "unit":
+              row.length > 3
+                  ? row[3]?.value
+                          ?.toString() ??
+                      ""
+                  : "",
+
+          "status":
+              row.length > 4
+                  ? row[4]?.value
+                          ?.toString() ??
+                      ""
+                  : "",
+
+          "month": importMonth,
+          "year": importYear,
+        });
+      }
+
+      if (rows.isEmpty) {
+        throw Exception(
+          "الملف فارغ",
+        );
+      }
+
+      await ExcelToDbService.import(
+        rows,
+        importMonth,
+        importYear,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.green,
+          content: Text(
+            "تم الاستيراد بنجاح",
+          ),
+        ),
+      );
+
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text("خطأ: ${e.toString()}")));
-    } finally { setState(() => isImporting = false); }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+            "خطأ: $e",
+          ),
+        ),
+      );
+
+    } finally {
+
+      if (mounted) {
+        setState(() {
+          isImporting = false;
+        });
+      }
+    }
   }
 
+  // =========================
+  // إنشاء التقرير
+  // =========================
+
   Future<void> _generateFilteredReport() async {
-    int startMonth = monthNumbers[fromMonth] ?? 1;
-    int endMonth = monthNumbers[toMonth] ?? 12;
-    String query = searchController.text.trim();
+
+    int startMonth =
+        monthNumbers[fromMonth] ?? 1;
+
+    int endMonth =
+        monthNumbers[toMonth] ?? 12;
+
+    String query =
+        searchController.text.trim();
 
     final db = await DBHelper.database;
-    List<Map<String, dynamic>> allRecords;
+
+    List<Map<String, dynamic>> records;
 
     if (query.isEmpty) {
-      allRecords = await db.query('timeline', where: 'year = ?', whereArgs: [selectedYear]);
+
+      records = await db.query(
+        'timeline',
+        where: 'year = ?',
+        whereArgs: [selectedYear],
+      );
+
     } else {
-      allRecords = await db.query('timeline', where: 'year = ? AND (number = ? OR name LIKE ?)', whereArgs: [selectedYear, query, '%$query%']);
+
+      records = await db.query(
+        'timeline',
+        where:
+            'year = ? AND (number = ? OR name LIKE ?)',
+        whereArgs: [
+          selectedYear,
+          query,
+          '%$query%',
+        ],
+      );
     }
 
-    List<Map<String, dynamic>> filteredRecords = allRecords.where((row) {
-      int rowMonth = int.tryParse(row['month']?.toString() ?? '0') ?? 0;
-      return rowMonth >= startMonth && rowMonth <= endMonth;
+    final filtered =
+        records.where((row) {
+
+      int month = int.tryParse(
+            row['month'].toString(),
+          ) ??
+          0;
+
+      return month >= startMonth &&
+          month <= endMonth;
+
     }).toList();
 
-    if (filteredRecords.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("لا توجد سجلات أفراد لهذه الفترة")));
+    if (filtered.isEmpty) {
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            "لا توجد بيانات",
+          ),
+        ),
+      );
+
       return;
     }
 
     final pdf = pw.Document();
-    pdf.addPage(pw.Page(
-      pageFormat: PdfPageFormat.a4,
-      theme: pw.ThemeData.withFont(base: pw.Font.courier()),
-      build: (pw.Context context) {
-        return pw.Directionality(
-          textDirection: pw.TextDirection.rtl,
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Center(child: pw.Text("تقرير مباينة سجل الحالة الدوري للأفراد", style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold))),
-              pw.SizedBox(height: 15),
-              pw.TableHelper.fromTextArray(
-                headers: ["الرقم العسكري", "الاسم", "الرتبة", "القوة/الوحدة", "الحالة", "الشهر/السنة"],
-                data: filteredRecords.map((r) => [r['number'] ?? '', r['name'] ?? '', r['rank'] ?? '', r['unit'] ?? '', r['status'] ?? '', "${r['month']}/${r['year']}"]).toList(),
-                cellAlignment: pw.Alignment.centerRight,
-              ),
-            ],
-          ),
-        );
-      },
-    ));
 
-    final output = await getTemporaryDirectory();
-    final file = File("${output.path}/filtered_hr_report.pdf");
-    await file.writeAsBytes(await pdf.save());
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (context) {
+
+          return pw.Directionality(
+            textDirection:
+                pw.TextDirection.rtl,
+            child: pw.Column(
+              children: [
+
+                pw.Text(
+                  "تقرير الأفراد",
+                  style: pw.TextStyle(
+                    fontSize: 20,
+                    fontWeight:
+                        pw.FontWeight.bold,
+                  ),
+                ),
+
+                pw.SizedBox(height: 20),
+
+                pw.TableHelper.fromTextArray(
+                  headers: [
+                    "الرقم",
+                    "الاسم",
+                    "الرتبة",
+                    "الوحدة",
+                    "الحالة",
+                    "الشهر",
+                    "السنة",
+                  ],
+
+                  data: filtered.map((r) {
+                    return [
+                      r['number']
+                              ?.toString() ??
+                          '',
+                      r['name']
+                              ?.toString() ??
+                          '',
+                      r['rank']
+                              ?.toString() ??
+                          '',
+                      r['unit']
+                              ?.toString() ??
+                          '',
+                      r['status']
+                              ?.toString() ??
+                          '',
+                      r['month']
+                              ?.toString() ??
+                          '',
+                      r['year']
+                              ?.toString() ??
+                          '',
+                    ];
+                  }).toList(),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    final dir =
+        await getTemporaryDirectory();
+
+    final file = File(
+      "${dir.path}/hr_report.pdf",
+    );
+
+    await file.writeAsBytes(
+      await pdf.save(),
+    );
+
     await OpenFile.open(file.path);
   }
 }

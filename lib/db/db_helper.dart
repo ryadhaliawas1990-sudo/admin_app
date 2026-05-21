@@ -2,23 +2,23 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class DBHelper {
-  static Database? _database;
+  static Database? _db;
 
   static Future<Database> get database async {
-    if (_database != null) return _database!;
-
-    _database = await _initDB();
-    return _database!;
+    if (_db != null) return _db!;
+    _db = await _initDB();
+    return _db!;
   }
 
   static Future<Database> _initDB() async {
-    final path = join(await getDatabasesPath(), 'app.db');
+    final path = join(await getDatabasesPath(), 'admin_app.db');
 
     return await openDatabase(
       path,
       version: 1,
       onCreate: (db, version) async {
 
+        // جدول الأفراد
         await db.execute('''
           CREATE TABLE timeline (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,45 +32,104 @@ class DBHelper {
           )
         ''');
 
+        // جدول تتبع الاستيراد (مهم جدًا لإصلاح import_screen)
         await db.execute('''
           CREATE TABLE imported_months (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             month TEXT,
-            year TEXT
+            year TEXT,
+            imported_at TEXT
           )
         ''');
       },
     );
   }
 
-  // 🔵 INSERT
-  static Future<void> insertTimeline(Map<String, dynamic> data) async {
+  // =========================
+  // INSERT timeline
+  // =========================
+  static Future<int> insertTimeline(Map<String, dynamic> data) async {
     final db = await database;
-    await db.insert('timeline', data);
+    return await db.insert('timeline', data);
   }
 
-  // 🔵 DELETE MONTH
-  static Future<void> deleteMonthData(String month, String year) async {
+  // =========================
+  // UPDATE timeline
+  // =========================
+  static Future<int> updateTimeline(Map<String, dynamic> data) async {
     final db = await database;
-    await db.delete(
+
+    return await db.update(
+      'timeline',
+      data,
+      where: 'number = ? AND month = ? AND year = ?',
+      whereArgs: [data['number'], data['month'], data['year']],
+    );
+  }
+
+  // =========================
+  // GET PERSON TIMELINE
+  // =========================
+  static Future<List<Map<String, dynamic>>> getPersonTimeline(
+      String number) async {
+    final db = await database;
+
+    return await db.query(
+      'timeline',
+      where: 'number = ?',
+      whereArgs: [number],
+      orderBy: 'year ASC, month ASC',
+    );
+  }
+
+  // =========================
+  // DELETE MONTH (timeline)
+  // =========================
+  static Future<int> deleteMonth(String month, String year) async {
+    final db = await database;
+
+    return await db.delete(
       'timeline',
       where: 'month = ? AND year = ?',
       whereArgs: [month, year],
     );
   }
 
-  // 🔵 MARK IMPORTED
+  // =========================
+  // GET IMPORTED MONTHS
+  // =========================
+  static Future<List<Map<String, dynamic>>> getImportedMonths() async {
+    final db = await database;
+
+    return await db.query(
+      'imported_months',
+      orderBy: 'year DESC, month DESC',
+    );
+  }
+
+  // =========================
+  // MARK MONTH IMPORTED
+  // =========================
   static Future<void> markMonthImported(String month, String year) async {
     final db = await database;
+
     await db.insert('imported_months', {
       'month': month,
       'year': year,
+      'imported_at': DateTime.now().toIso8601String(),
     });
   }
 
-  // 🔵 DASHBOARD QUERIES
-  static Future<List<Map<String, dynamic>>> getAllTimeline() async {
+  // =========================
+  // DELETE MONTH DATA (compatibility)
+  // =========================
+  static Future<void> deleteMonthData(String month, String year) async {
     final db = await database;
-    return await db.query('timeline');
+
+    await db.delete(
+      'timeline',
+      where: 'month = ? AND year = ?',
+      whereArgs: [month, year],
+    );
   }
 }
