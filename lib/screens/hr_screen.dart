@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:file_picker/file_picker.dart';
@@ -34,8 +35,6 @@ class _HrScreenState extends State<HrScreen> {
   String importMonth = "1";
 
   bool isImporting = false;
-
-  List<Map<String, dynamic>> searchResults = [];
 
   final List<String> years = [
     "2019",
@@ -81,25 +80,6 @@ class _HrScreenState extends State<HrScreen> {
     "نوفمبر": 11,
     "ديسمبر": 12,
   };
-
-  Future<void> liveSearch(String value) async {
-
-    final db = await DBHelper.database;
-
-    final data = await db.query(
-      'timeline',
-      where:
-          'number LIKE ? OR name LIKE ?',
-      whereArgs: [
-        '%$value%',
-        '%$value%',
-      ],
-    );
-
-    setState(() {
-      searchResults = data;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -295,20 +275,6 @@ class _HrScreenState extends State<HrScreen> {
               TextField(
                 controller: searchController,
 
-                onChanged: (value) {
-
-                  if (value.trim().isEmpty) {
-
-                    setState(() {
-                      searchResults = [];
-                    });
-
-                  } else {
-
-                    liveSearch(value);
-                  }
-                },
-
                 decoration: const InputDecoration(
                   labelText:
                       "بحث بالرقم أو الاسم",
@@ -317,45 +283,6 @@ class _HrScreenState extends State<HrScreen> {
                       Icon(Icons.search),
                 ),
               ),
-
-              const SizedBox(height: 10),
-
-              if (searchResults.isNotEmpty)
-
-                SizedBox(
-                  height: 250,
-
-                  child: ListView.builder(
-
-                    itemCount:
-                        searchResults.length,
-
-                    itemBuilder:
-                        (context, index) {
-
-                      final item =
-                          searchResults[index];
-
-                      return Card(
-
-                        child: ListTile(
-
-                          title: Text(
-                            item['name'] ?? '',
-                          ),
-
-                          subtitle: Text(
-                            'الرقم: ${item['number']}',
-                          ),
-
-                          trailing: Text(
-                            item['status'] ?? '',
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
 
               const SizedBox(height: 15),
 
@@ -489,6 +416,10 @@ class _HrScreenState extends State<HrScreen> {
     );
   }
 
+  // =========================
+  // استيراد الإكسل
+  // =========================
+
   Future<void> _pickAndImportExcel() async {
 
     try {
@@ -535,40 +466,42 @@ class _HrScreenState extends State<HrScreen> {
 
         final row = sheet.rows[i];
 
-        String readCell(int index) {
-
-          if (index >= row.length) {
-            return "";
-          }
-
-          final cell = row[index];
-
-          if (cell == null ||
-              cell.value == null) {
-            return "";
-          }
-
-          return cell.value
-              .toString()
-              .trim();
-        }
-
         rows.add({
 
-          // B الرقم العسكري
-          "number": readCell(1),
+          "number":
+              row.length > 1
+                  ? row[1]?.value
+                          ?.toString() ??
+                      ""
+                  : "",
 
-          // C الرتبة
-          "rank": readCell(2),
+          "rank":
+              row.length > 2
+                  ? row[2]?.value
+                          ?.toString() ??
+                      ""
+                  : "",
 
-          // D الاسم
-          "name": readCell(3),
+          "name":
+              row.length > 3
+                  ? row[3]?.value
+                          ?.toString() ??
+                      ""
+                  : "",
 
-          // E الوحدة
-          "unit": readCell(4),
+          "unit":
+              row.length > 4
+                  ? row[4]?.value
+                          ?.toString() ??
+                      ""
+                  : "",
 
-          // F الحالة
-          "status": readCell(5),
+          "status":
+              row.length > 5
+                  ? row[5]?.value
+                          ?.toString() ??
+                      ""
+                  : "",
 
           "month": importMonth,
           "year": importYear,
@@ -626,6 +559,10 @@ class _HrScreenState extends State<HrScreen> {
       }
     }
   }
+
+  // =========================
+  // إنشاء التقرير
+  // =========================
 
   Future<void> _generateFilteredReport() async {
 
@@ -693,6 +630,16 @@ class _HrScreenState extends State<HrScreen> {
       return;
     }
 
+    // =========================
+    // الخط العربي
+    // =========================
+
+    final font = pw.Font.ttf(
+      await rootBundle.load(
+        'assets/fonts/Cairo-Regular.ttf',
+      ),
+    );
+
     final pdf = pw.Document();
 
     pdf.addPage(
@@ -716,6 +663,7 @@ class _HrScreenState extends State<HrScreen> {
                     "تقرير الموارد البشرية",
 
                     style: pw.TextStyle(
+                      font: font,
                       fontSize: 20,
                       fontWeight:
                           pw.FontWeight.bold,
@@ -727,20 +675,29 @@ class _HrScreenState extends State<HrScreen> {
 
                 pw.Text(
                   "السنة: $selectedYear",
+                  style: pw.TextStyle(font: font),
                 ),
 
                 pw.Text(
                   "الفترة: $fromMonth → $toMonth",
+                  style: pw.TextStyle(font: font),
                 ),
 
                 if (query.isNotEmpty)
                   pw.Text(
                     "البحث: $query",
+                    style: pw.TextStyle(font: font),
                   ),
 
                 pw.SizedBox(height: 15),
 
                 pw.TableHelper.fromTextArray(
+
+                  headerStyle:
+                      pw.TextStyle(font: font),
+
+                  cellStyle:
+                      pw.TextStyle(font: font),
 
                   headers: [
                     "الرقم",
@@ -756,16 +713,56 @@ class _HrScreenState extends State<HrScreen> {
 
                     return [
 
-                      r['number']?.toString() ?? '',
-                      r['name']?.toString() ?? '',
-                      r['rank']?.toString() ?? '',
-                      r['unit']?.toString() ?? '',
-                      r['status']?.toString() ?? '',
-                      r['month']?.toString() ?? '',
-                      r['year']?.toString() ?? '',
+                      r['number']
+                              ?.toString() ??
+                          '',
+
+                      r['name']
+                              ?.toString() ??
+                          '',
+
+                      r['rank']
+                              ?.toString() ??
+                          '',
+
+                      r['unit']
+                              ?.toString() ??
+                          '',
+
+                      r['status']
+                              ?.toString() ??
+                          '',
+
+                      r['month']
+                              ?.toString() ??
+                          '',
+
+                      r['year']
+                              ?.toString() ??
+                          '',
                     ];
 
                   }).toList(),
+                ),
+
+                pw.SizedBox(height: 30),
+
+                pw.Row(
+                  mainAxisAlignment:
+                      pw.MainAxisAlignment.spaceBetween,
+
+                  children: [
+
+                    pw.Text(
+                      "التوقيع: __________",
+                      style: pw.TextStyle(font: font),
+                    ),
+
+                    pw.Text(
+                      "التوقيع: __________",
+                      style: pw.TextStyle(font: font),
+                    ),
+                  ],
                 ),
               ],
             ),

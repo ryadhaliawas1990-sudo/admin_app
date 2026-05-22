@@ -34,10 +34,10 @@ dependencies:
   # مشاركة الملفات
   share_plus: ^10.0.2
 
-  # HTML (لـ PDF العربي لاحقًا)
+  # HTML (اختياري)
   html: ^0.15.4
 
-  # 📄 Word / Excel engine (للـ DOCX / XLSX export)
+  # Word / Excel export
   syncfusion_flutter_xlsio: ^27.1.50
 
 dev_dependencies:
@@ -49,10 +49,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # 🎯 تم دمج وتطهير الأصول والخطوط في مكان واحد رسمي بدون أي تكرار
-  assets:
-    - assets/fonts/
-
+  # ✅ الخطوط (الطريقة الصحيحة)
   fonts:
     - family: Cairo
       fonts:
