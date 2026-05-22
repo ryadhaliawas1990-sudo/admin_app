@@ -27,16 +27,12 @@ class BatchTimelinePdf {
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
-
           build: (context) {
 
             return pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
 
-                // =====================
-                // العنوان
-                // =====================
                 pw.Center(
                   child: pw.Text(
                     headerText,
@@ -49,44 +45,80 @@ class BatchTimelinePdf {
 
                 pw.SizedBox(height: 15),
 
-                // =====================
-                // بيانات الفرد
-                // =====================
                 pw.Text("الاسم: $name"),
                 pw.Text("الرقم: $number"),
                 pw.Text("الرتبة: $rank"),
 
                 pw.SizedBox(height: 15),
 
-                // =====================
-                // الجدول
-                // =====================
-                pw.Table.fromTextArray(
+                /// =========================
+                /// FIXED TABLE (stable version)
+                /// =========================
+                pw.Table(
                   border: pw.TableBorder.all(width: 0.5),
-                  headers: [
-                    "الشهر",
-                    "السنة",
-                    "الحالة",
-                    "الوحدة",
+                  columnWidths: {
+                    0: const pw.FlexColumnWidth(),
+                    1: const pw.FlexColumnWidth(),
+                    2: const pw.FlexColumnWidth(),
+                    3: const pw.FlexColumnWidth(),
+                  },
+                  children: [
+
+                    /// Headers
+                    pw.TableRow(
+                      decoration: const pw.BoxDecoration(),
+                      children: [
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(4),
+                          child: pw.Text("الشهر",
+                              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(4),
+                          child: pw.Text("السنة",
+                              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(4),
+                          child: pw.Text("الحالة",
+                              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(4),
+                          child: pw.Text("الوحدة",
+                              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+
+                    /// Data rows
+                    ...data.map((e) {
+                      return pw.TableRow(
+                        children: [
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(4),
+                            child: pw.Text(e['month'] ?? ''),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(4),
+                            child: pw.Text(e['year'] ?? ''),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(4),
+                            child: pw.Text(e['status'] ?? ''),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(4),
+                            child: pw.Text(e['unit'] ?? ''),
+                          ),
+                        ],
+                      );
+                    }),
                   ],
-                  data: data.map((e) {
-                    return [
-                      e['month'] ?? '',
-                      e['year'] ?? '',
-                      e['status'] ?? '',
-                      e['unit'] ?? '',
-                    ];
-                  }).toList(),
-                  headerStyle: pw.TextStyle(
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                  cellAlignment: pw.Alignment.center,
                 ),
 
                 pw.SizedBox(height: 20),
-
                 pw.Divider(),
-
               ],
             );
           },

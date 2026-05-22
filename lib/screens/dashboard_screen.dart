@@ -1,322 +1,253 @@
 import 'package:flutter/material.dart';
 import '../db/db_helper.dart';
 
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
-import 'package:open_file/open_file.dart';
-
-// ✅ مهم: حل تعارض Border
-import 'package:excel/excel.dart' as ex;
-
-class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+class AdvancedFilterScreen extends StatefulWidget {
+  const AdvancedFilterScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  State<AdvancedFilterScreen> createState() =>
+      _AdvancedFilterScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _AdvancedFilterScreenState
+    extends State<AdvancedFilterScreen> {
 
-  int totalPeople = 0;
-  int totalRecords = 0;
-  int totalYears = 0;
+  String? selectedYear;
+  String? selectedStatus;
+  String? selectedUnit;
 
-  Map<String, int> statusCount = {};
+  List<Map<String, dynamic>> results = [];
 
-  bool loading = true;
+  bool loading = false;
 
-  final TextEditingController searchController = TextEditingController();
-  List<Map<String, dynamic>> searchResults = [];
-
-  String latestMonth = "";
-  String latestYear = "";
+  List<String> years = [];
+  List<String> statuses = [];
+  List<String> units = [];
 
   @override
   void initState() {
     super.initState();
-    loadStats();
+    loadFilters();
   }
 
-  // =========================
-  // تحميل الإحصائيات
-  // =========================
-  Future<void> loadStats() async {
-    try {
-      final db = await DBHelper.database;
+  Future<void> loadFilters() async {
 
-      final people = await db.rawQuery('''
-        SELECT COUNT(DISTINCT number) as count
-        FROM timeline
-      ''');
-
-      final records = await db.rawQuery('''
-        SELECT COUNT(*) as count
-        FROM timeline
-      ''');
-
-      final years = await db.rawQuery('''
-        SELECT COUNT(DISTINCT year) as count
-        FROM timeline
-      ''');
-
-      // آخر شهر
-      final latest = await db.rawQuery('''
-        SELECT year, month
-        FROM timeline
-        ORDER BY CAST(year AS INTEGER) DESC,
-                 CAST(month AS INTEGER) DESC
-        LIMIT 1
-      ''');
-
-      if (latest.isNotEmpty) {
-        latestYear = latest.first['year'].toString();
-        latestMonth = latest.first['month'].toString();
-      }
-
-      // توزيع الحالات (آخر شهر فقط)
-      final statuses = await db.rawQuery('''
-        SELECT status, COUNT(*) as count
-        FROM timeline
-        WHERE year = ?
-          AND month = ?
-          AND status IS NOT NULL
-          AND TRIM(status) != ''
-          AND status != '-'
-        GROUP BY status
-        ORDER BY count DESC
-      ''', [latestYear, latestMonth]);
-
-      Map<String, int> map = {};
-
-      for (var s in statuses) {
-        final key = s['status'].toString().trim();
-        final value = int.tryParse(s['count'].toString()) ?? 0;
-
-        if (key.isNotEmpty) {
-          map[key] = value;
-        }
-      }
-
-      if (!mounted) return;
-
-      setState(() {
-        totalPeople = int.tryParse(people.first['count'].toString()) ?? 0;
-        totalRecords = int.tryParse(records.first['count'].toString()) ?? 0;
-        totalYears = int.tryParse(years.first['count'].toString()) ?? 0;
-
-        statusCount = map;
-        loading = false;
-      });
-
-    } catch (e) {
-      debugPrint("ERROR: $e");
-      setState(() => loading = false);
-    }
-  }
-
-  // =========================
-  // البحث
-  // =========================
-  Future<void> searchPeople(String value) async {
     final db = await DBHelper.database;
 
-    if (value.trim().isEmpty) {
-      setState(() => searchResults = []);
-      return;
-    }
-
-    final data = await db.query(
-      'timeline',
-      where: 'number LIKE ? OR name LIKE ?',
-      whereArgs: ['%$value%', '%$value%'],
-      limit: 30,
+    final yearData = await db.rawQuery(
+      "SELECT DISTINCT year FROM timeline ORDER BY year DESC",
     );
 
-    setState(() => searchResults = data);
+    final statusData = await db.rawQuery(
+      "SELECT DISTINCT status FROM timeline",
+    );
+
+    final unitData = await db.rawQuery(
+      "SELECT DISTINCT unit FROM timeline",
+    );
+
+    setState(() {
+
+      years = yearData
+          .map((e) => e['year'].toString())
+          .where((e) => e.isNotEmpty)
+          .toList();
+
+      statuses = statusData
+          .map((e) => e['status'].toString())
+          .where((e) => e.isNotEmpty)
+          .toList();
+
+      units = unitData
+          .map((e) => e['unit'].toString())
+          .where((e) => e.isNotEmpty)
+          .toList();
+    });
   }
 
-  // =========================
-  // تصدير Excel للحالة
-  // =========================
-  Future<void> exportStatusExcel(String status) async {
+  Future<void> applyFilter() async {
+
+    setState(() => loading = true);
+
     final db = await DBHelper.database;
 
-    final data = await db.query(
-      'timeline',
-      where: '''
-        status = ?
-        AND year = ?
-        AND month = ?
-      ''',
-      whereArgs: [status, latestYear, latestMonth],
+    String query =
+        "SELECT * FROM timeline WHERE 1=1";
+
+    List<dynamic> args = [];
+
+    if (selectedYear != null &&
+        selectedYear!.isNotEmpty) {
+
+      query += " AND year = ?";
+      args.add(selectedYear);
+    }
+
+    if (selectedStatus != null &&
+        selectedStatus!.isNotEmpty) {
+
+      query += " AND status = ?";
+      args.add(selectedStatus);
+    }
+
+    if (selectedUnit != null &&
+        selectedUnit!.isNotEmpty) {
+
+      query += " AND unit = ?";
+      args.add(selectedUnit);
+    }
+
+    query += " ORDER BY id DESC";
+
+    final data = await db.rawQuery(
+      query,
+      args,
     );
-
-    if (data.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("لا توجد بيانات")),
-      );
-      return;
-    }
-
-    final excel = ex.Excel.createExcel();
-    final sheet = excel['Sheet1'];
-
-    sheet.appendRow([
-      ex.TextCellValue("الرقم"),
-      ex.TextCellValue("الاسم"),
-      ex.TextCellValue("الرتبة"),
-      ex.TextCellValue("الوحدة"),
-      ex.TextCellValue("الحالة"),
-      ex.TextCellValue("الشهر"),
-      ex.TextCellValue("السنة"),
-    ]);
-
-    for (var row in data) {
-      sheet.appendRow([
-        ex.TextCellValue(row['number']?.toString() ?? ''),
-        ex.TextCellValue(row['name']?.toString() ?? ''),
-        ex.TextCellValue(row['rank']?.toString() ?? ''),
-        ex.TextCellValue(row['unit']?.toString() ?? ''),
-        ex.TextCellValue(row['status']?.toString() ?? ''),
-        ex.TextCellValue(row['month']?.toString() ?? ''),
-        ex.TextCellValue(row['year']?.toString() ?? ''),
-      ]);
-    }
-
-    final dir = await getTemporaryDirectory();
-    final file = File("${dir.path}/status_$status.xlsx");
-
-    await file.writeAsBytes(excel.encode()!);
-
-    await OpenFile.open(file.path);
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("تم تصدير ملف: $status")),
+    setState(() {
+      results = data;
+      loading = false;
+    });
+  }
+
+  Widget buildDropdown({
+    required String title,
+    required List<String> items,
+    required String? value,
+    required Function(String?) onChanged,
+  }) {
+
+    return DropdownButtonFormField<String>(
+
+      initialValue: value,
+
+      items: items.map((e) {
+
+        return DropdownMenuItem<String>(
+          value: e,
+          child: Text(e),
+        );
+
+      }).toList(),
+
+      onChanged: onChanged,
+
+      decoration: InputDecoration(
+        labelText: title,
+        border: const OutlineInputBorder(),
+      ),
     );
   }
 
-  // =========================
-  // UI
-  // =========================
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      appBar: AppBar(title: const Text("لوحة التحكم")),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
 
-                  Row(
-                    children: [
-                      Expanded(child: _card("الأفراد", totalPeople)),
-                      const SizedBox(width: 10),
-                      Expanded(child: _card("السجلات", totalRecords)),
-                    ],
-                  ),
+      appBar: AppBar(
+        title: const Text("فلترة متقدمة"),
+      ),
 
-                  const SizedBox(height: 10),
-                  _card("السنوات", totalYears),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
 
-                  const SizedBox(height: 15),
-
-                  TextField(
-                    controller: searchController,
-                    decoration: const InputDecoration(
-                      labelText: "بحث",
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: searchPeople,
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  if (searchResults.isNotEmpty)
-                    SizedBox(
-                      height: 200,
-                      child: ListView.builder(
-                        itemCount: searchResults.length,
-                        itemBuilder: (_, i) {
-                          final item = searchResults[i];
-                          return ListTile(
-                            title: Text(item['name'] ?? ''),
-                            subtitle: Text(item['number'] ?? ''),
-                            trailing: Text(item['status'] ?? ''),
-                          );
-                        },
-                      ),
-                    ),
-
-                  const SizedBox(height: 10),
-
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      "الحالات (آخر شهر: $latestMonth / $latestYear)",
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  Expanded(
-                    child: GridView.builder(
-                      itemCount: statusCount.length,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 2,
-                      ),
-                      itemBuilder: (_, i) {
-                        final key = statusCount.keys.elementAt(i);
-                        final value = statusCount[key]!;
-
-                        return InkWell(
-                          onTap: () => exportStatusExcel(key),
-                          child: Container(
-                            margin: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  key,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(value.toString()),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-    );
-  }
-
-  Widget _card(String title, int value) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            Text(title),
-            Text(
-              value.toString(),
-              style: const TextStyle(fontSize: 22),
+
+            buildDropdown(
+              title: "السنة",
+              items: years,
+              value: selectedYear,
+              onChanged: (v) {
+                setState(() {
+                  selectedYear = v;
+                });
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            buildDropdown(
+              title: "الحالة",
+              items: statuses,
+              value: selectedStatus,
+              onChanged: (v) {
+                setState(() {
+                  selectedStatus = v;
+                });
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            buildDropdown(
+              title: "الوحدة",
+              items: units,
+              value: selectedUnit,
+              onChanged: (v) {
+                setState(() {
+                  selectedUnit = v;
+                });
+              },
+            ),
+
+            const SizedBox(height: 16),
+
+            SizedBox(
+              width: double.infinity,
+
+              child: ElevatedButton(
+                onPressed: applyFilter,
+                child: const Text("تطبيق الفلتر"),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            Expanded(
+
+              child: loading
+
+                  ? const Center(
+                      child:
+                          CircularProgressIndicator(),
+                    )
+
+                  : results.isEmpty
+
+                      ? const Center(
+                          child: Text(
+                            "لا توجد نتائج",
+                          ),
+                        )
+
+                      : ListView.builder(
+
+                          itemCount: results.length,
+
+                          itemBuilder: (context, index) {
+
+                            final item = results[index];
+
+                            return Card(
+
+                              child: ListTile(
+
+                                title: Text(
+                                  item['name']
+                                          ?.toString() ??
+                                      '',
+                                ),
+
+                                subtitle: Text(
+                                  "الرقم: ${item['number']} | الحالة: ${item['status']} | الوحدة: ${item['unit']}",
+                                ),
+                              ),
+                            );
+                          },
+                        ),
             ),
           ],
         ),

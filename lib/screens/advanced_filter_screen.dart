@@ -5,10 +5,12 @@ class AdvancedFilterScreen extends StatefulWidget {
   const AdvancedFilterScreen({super.key});
 
   @override
-  State<AdvancedFilterScreen> createState() => _AdvancedFilterScreenState();
+  State<AdvancedFilterScreen> createState() =>
+      _AdvancedFilterScreenState();
 }
 
-class _AdvancedFilterScreenState extends State<AdvancedFilterScreen> {
+class _AdvancedFilterScreenState
+    extends State<AdvancedFilterScreen> {
 
   String? selectedYear;
   String? selectedStatus;
@@ -33,7 +35,7 @@ class _AdvancedFilterScreenState extends State<AdvancedFilterScreen> {
     final db = await DBHelper.database;
 
     final yearData = await db.rawQuery(
-      "SELECT DISTINCT year FROM timeline",
+      "SELECT DISTINCT year FROM timeline ORDER BY year DESC",
     );
 
     final statusData = await db.rawQuery(
@@ -45,9 +47,21 @@ class _AdvancedFilterScreenState extends State<AdvancedFilterScreen> {
     );
 
     setState(() {
-      years = yearData.map((e) => e['year'].toString()).toList();
-      statuses = statusData.map((e) => e['status'].toString()).toList();
-      units = unitData.map((e) => e['unit'].toString()).toList();
+
+      years = yearData
+          .map((e) => e['year'].toString())
+          .where((e) => e.isNotEmpty)
+          .toList();
+
+      statuses = statusData
+          .map((e) => e['status'].toString())
+          .where((e) => e.isNotEmpty)
+          .toList();
+
+      units = unitData
+          .map((e) => e['unit'].toString())
+          .where((e) => e.isNotEmpty)
+          .toList();
     });
   }
 
@@ -57,25 +71,40 @@ class _AdvancedFilterScreenState extends State<AdvancedFilterScreen> {
 
     final db = await DBHelper.database;
 
-    String query = "SELECT * FROM timeline WHERE 1=1";
-    List args = [];
+    String query =
+        "SELECT * FROM timeline WHERE 1=1";
 
-    if (selectedYear != null) {
+    List<dynamic> args = [];
+
+    if (selectedYear != null &&
+        selectedYear!.isNotEmpty) {
+
       query += " AND year = ?";
       args.add(selectedYear);
     }
 
-    if (selectedStatus != null) {
+    if (selectedStatus != null &&
+        selectedStatus!.isNotEmpty) {
+
       query += " AND status = ?";
       args.add(selectedStatus);
     }
 
-    if (selectedUnit != null) {
+    if (selectedUnit != null &&
+        selectedUnit!.isNotEmpty) {
+
       query += " AND unit = ?";
       args.add(selectedUnit);
     }
 
-    final data = await db.rawQuery(query, args);
+    query += " ORDER BY id DESC";
+
+    final data = await db.rawQuery(
+      query,
+      args,
+    );
+
+    if (!mounted) return;
 
     setState(() {
       results = data;
@@ -83,89 +112,142 @@ class _AdvancedFilterScreenState extends State<AdvancedFilterScreen> {
     });
   }
 
+  Widget buildDropdown({
+    required String title,
+    required List<String> items,
+    required String? value,
+    required Function(String?) onChanged,
+  }) {
+
+    return DropdownButtonFormField<String>(
+
+      initialValue: value,
+
+      items: items.map((e) {
+
+        return DropdownMenuItem<String>(
+          value: e,
+          child: Text(e),
+        );
+
+      }).toList(),
+
+      onChanged: onChanged,
+
+      decoration: InputDecoration(
+        labelText: title,
+        border: const OutlineInputBorder(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
 
     return Scaffold(
+
       appBar: AppBar(
         title: const Text("فلترة متقدمة"),
       ),
 
       body: Padding(
         padding: const EdgeInsets.all(16),
+
         child: Column(
           children: [
 
-            // السنة
-            DropdownButtonFormField(
+            buildDropdown(
+              title: "السنة",
+              items: years,
               value: selectedYear,
-              items: years.map((e) {
-                return DropdownMenuItem(
-                  value: e,
-                  child: Text(e),
-                );
-              }).toList(),
-              onChanged: (v) => setState(() => selectedYear = v),
-              decoration: const InputDecoration(labelText: "السنة"),
+              onChanged: (v) {
+                setState(() {
+                  selectedYear = v;
+                });
+              },
             ),
 
-            // الحالة
-            DropdownButtonFormField(
+            const SizedBox(height: 12),
+
+            buildDropdown(
+              title: "الحالة",
+              items: statuses,
               value: selectedStatus,
-              items: statuses.map((e) {
-                return DropdownMenuItem(
-                  value: e,
-                  child: Text(e),
-                );
-              }).toList(),
-              onChanged: (v) => setState(() => selectedStatus = v),
-              decoration: const InputDecoration(labelText: "الحالة"),
+              onChanged: (v) {
+                setState(() {
+                  selectedStatus = v;
+                });
+              },
             ),
 
-            // الوحدة
-            DropdownButtonFormField(
+            const SizedBox(height: 12),
+
+            buildDropdown(
+              title: "الوحدة",
+              items: units,
               value: selectedUnit,
-              items: units.map((e) {
-                return DropdownMenuItem(
-                  value: e,
-                  child: Text(e),
-                );
-              }).toList(),
-              onChanged: (v) => setState(() => selectedUnit = v),
-              decoration: const InputDecoration(labelText: "الوحدة"),
+              onChanged: (v) {
+                setState(() {
+                  selectedUnit = v;
+                });
+              },
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
 
             SizedBox(
               width: double.infinity,
+
               child: ElevatedButton(
                 onPressed: applyFilter,
                 child: const Text("تطبيق الفلتر"),
               ),
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
 
             Expanded(
+
               child: loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ListView.builder(
-                      itemCount: results.length,
-                      itemBuilder: (context, index) {
 
-                        final item = results[index];
+                  ? const Center(
+                      child:
+                          CircularProgressIndicator(),
+                    )
 
-                        return Card(
-                          child: ListTile(
-                            title: Text(item['name'] ?? ''),
-                            subtitle: Text(
-                              "رقم: ${item['number']} | حالة: ${item['status']}",
-                            ),
+                  : results.isEmpty
+
+                      ? const Center(
+                          child: Text(
+                            "لا توجد نتائج",
                           ),
-                        );
-                      },
-                    ),
+                        )
+
+                      : ListView.builder(
+
+                          itemCount: results.length,
+
+                          itemBuilder: (context, index) {
+
+                            final item = results[index];
+
+                            return Card(
+
+                              child: ListTile(
+
+                                title: Text(
+                                  item['name']
+                                          ?.toString() ??
+                                      '',
+                                ),
+
+                                subtitle: Text(
+                                  "الرقم: ${item['number']} | الحالة: ${item['status']} | الوحدة: ${item['unit']}",
+                                ),
+                              ),
+                            );
+                          },
+                        ),
             ),
           ],
         ),

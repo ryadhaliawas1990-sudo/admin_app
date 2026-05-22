@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 class SystemFullReport {
@@ -25,7 +26,10 @@ class SystemFullReport {
 
             pw.SizedBox(height: 20),
 
-            pw.Table.fromTextArray(
+            /// =========================
+            /// FIXED TABLE (modern API)
+            /// =========================
+            pw.TableHelper.fromTextArray(
               headers: [
                 "الرقم",
                 "الاسم",

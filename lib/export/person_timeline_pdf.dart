@@ -1,3 +1,5 @@
+  }
+}
 import 'dart:io';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -20,9 +22,6 @@ class PersonTimelinePdf {
     final name = data.first['name'] ?? '';
     final rank = data.first['rank'] ?? '';
 
-    // =========================
-    // تحديد الاتجاه
-    // =========================
     final isLandscape = data.length > 6;
 
     final pageFormat = isLandscape
@@ -40,9 +39,9 @@ class PersonTimelinePdf {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
 
-              // =====================
-              // العنوان
-              // =====================
+              /// =====================
+              /// العنوان
+              /// =====================
               pw.Center(
                 child: pw.Text(
                   headerText,
@@ -55,19 +54,19 @@ class PersonTimelinePdf {
 
               pw.SizedBox(height: 15),
 
-              // =====================
-              // بيانات الفرد
-              // =====================
+              /// =====================
+              /// بيانات الفرد
+              /// =====================
               pw.Text("الاسم: $name"),
               pw.Text("الرقم: $number"),
               pw.Text("الرتبة: $rank"),
 
               pw.SizedBox(height: 15),
 
-              // =====================
-              // الجدول
-              // =====================
-              pw.Table.fromTextArray(
+              /// =====================
+              /// الجدول (FIXED)
+              /// =====================
+              pw.TableHelper.fromTextArray(
                 border: pw.TableBorder.all(width: 0.5),
                 headers: [
                   "الشهر",
@@ -83,17 +82,19 @@ class PersonTimelinePdf {
                     e['unit'] ?? '',
                   ];
                 }).toList(),
+
                 headerStyle: pw.TextStyle(
                   fontWeight: pw.FontWeight.bold,
                 ),
+
                 cellAlignment: pw.Alignment.center,
               ),
 
-              pw.Spacer(),
+              pw.SizedBox(height: 25),
 
-              // =====================
-              // التوقيعات
-              // =====================
+              /// =====================
+              /// التوقيعات
+              /// =====================
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
