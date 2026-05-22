@@ -35,6 +35,8 @@ class _HrScreenState extends State<HrScreen> {
 
   bool isImporting = false;
 
+  List<Map<String, dynamic>> searchResults = [];
+
   final List<String> years = [
     "2019",
     "2020",
@@ -79,6 +81,25 @@ class _HrScreenState extends State<HrScreen> {
     "نوفمبر": 11,
     "ديسمبر": 12,
   };
+
+  Future<void> liveSearch(String value) async {
+
+    final db = await DBHelper.database;
+
+    final data = await db.query(
+      'timeline',
+      where:
+          'number LIKE ? OR name LIKE ?',
+      whereArgs: [
+        '%$value%',
+        '%$value%',
+      ],
+    );
+
+    setState(() {
+      searchResults = data;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -274,6 +295,20 @@ class _HrScreenState extends State<HrScreen> {
               TextField(
                 controller: searchController,
 
+                onChanged: (value) {
+
+                  if (value.trim().isEmpty) {
+
+                    setState(() {
+                      searchResults = [];
+                    });
+
+                  } else {
+
+                    liveSearch(value);
+                  }
+                },
+
                 decoration: const InputDecoration(
                   labelText:
                       "بحث بالرقم أو الاسم",
@@ -283,9 +318,49 @@ class _HrScreenState extends State<HrScreen> {
                 ),
               ),
 
+              const SizedBox(height: 10),
+
+              if (searchResults.isNotEmpty)
+
+                SizedBox(
+                  height: 250,
+
+                  child: ListView.builder(
+
+                    itemCount:
+                        searchResults.length,
+
+                    itemBuilder:
+                        (context, index) {
+
+                      final item =
+                          searchResults[index];
+
+                      return Card(
+
+                        child: ListTile(
+
+                          title: Text(
+                            item['name'] ?? '',
+                          ),
+
+                          subtitle: Text(
+                            'الرقم: ${item['number']}',
+                          ),
+
+                          trailing: Text(
+                            item['status'] ?? '',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
               const SizedBox(height: 15),
 
               Row(
+
                 children: [
 
                   Expanded(
@@ -414,10 +489,6 @@ class _HrScreenState extends State<HrScreen> {
     );
   }
 
-  // =========================
-  // استيراد الإكسل
-  // =========================
-
   Future<void> _pickAndImportExcel() async {
 
     try {
@@ -464,42 +535,40 @@ class _HrScreenState extends State<HrScreen> {
 
         final row = sheet.rows[i];
 
+        String readCell(int index) {
+
+          if (index >= row.length) {
+            return "";
+          }
+
+          final cell = row[index];
+
+          if (cell == null ||
+              cell.value == null) {
+            return "";
+          }
+
+          return cell.value
+              .toString()
+              .trim();
+        }
+
         rows.add({
 
-          "number":
-              row.length > 0
-                  ? row[0]?.value
-                          ?.toString() ??
-                      ""
-                  : "",
+          // B الرقم العسكري
+          "number": readCell(1),
 
-          "name":
-              row.length > 1
-                  ? row[1]?.value
-                          ?.toString() ??
-                      ""
-                  : "",
+          // C الرتبة
+          "rank": readCell(2),
 
-          "rank":
-              row.length > 2
-                  ? row[2]?.value
-                          ?.toString() ??
-                      ""
-                  : "",
+          // D الاسم
+          "name": readCell(3),
 
-          "unit":
-              row.length > 3
-                  ? row[3]?.value
-                          ?.toString() ??
-                      ""
-                  : "",
+          // E الوحدة
+          "unit": readCell(4),
 
-          "status":
-              row.length > 4
-                  ? row[4]?.value
-                          ?.toString() ??
-                      ""
-                  : "",
+          // F الحالة
+          "status": readCell(5),
 
           "month": importMonth,
           "year": importYear,
@@ -557,10 +626,6 @@ class _HrScreenState extends State<HrScreen> {
       }
     }
   }
-
-  // =========================
-  // إنشاء التقرير
-  // =========================
 
   Future<void> _generateFilteredReport() async {
 
@@ -691,54 +756,16 @@ class _HrScreenState extends State<HrScreen> {
 
                     return [
 
-                      r['number']
-                              ?.toString() ??
-                          '',
-
-                      r['name']
-                              ?.toString() ??
-                          '',
-
-                      r['rank']
-                              ?.toString() ??
-                          '',
-
-                      r['unit']
-                              ?.toString() ??
-                          '',
-
-                      r['status']
-                              ?.toString() ??
-                          '',
-
-                      r['month']
-                              ?.toString() ??
-                          '',
-
-                      r['year']
-                              ?.toString() ??
-                          '',
+                      r['number']?.toString() ?? '',
+                      r['name']?.toString() ?? '',
+                      r['rank']?.toString() ?? '',
+                      r['unit']?.toString() ?? '',
+                      r['status']?.toString() ?? '',
+                      r['month']?.toString() ?? '',
+                      r['year']?.toString() ?? '',
                     ];
 
                   }).toList(),
-                ),
-
-                pw.SizedBox(height: 30),
-
-                pw.Row(
-                  mainAxisAlignment:
-                      pw.MainAxisAlignment.spaceBetween,
-
-                  children: [
-
-                    pw.Text(
-                      "التوقيع: __________",
-                    ),
-
-                    pw.Text(
-                      "التوقيع: __________",
-                    ),
-                  ],
                 ),
               ],
             ),

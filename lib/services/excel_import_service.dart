@@ -1,5 +1,6 @@
 import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
+
 import '../db/db_helper.dart';
 
 class ExcelImportService {
@@ -11,30 +12,49 @@ class ExcelImportService {
 
     try {
 
-      final result = await FilePicker.platform.pickFiles(
+      // =========================
+      // اختيار الملف
+      // =========================
+
+      final result =
+          await FilePicker.platform.pickFiles(
+
         type: FileType.custom,
-        allowedExtensions: ['xlsx', 'xls'],
+
+        allowedExtensions: [
+          'xlsx',
+          'xls',
+        ],
+
         withData: true,
       );
 
-      // =========================
-      // التحقق من اختيار الملف
-      // =========================
+      if (result == null ||
+          result.files.isEmpty) {
 
-      if (result == null || result.files.isEmpty) {
         return {
+
           "success": false,
-          "message": "تم إلغاء اختيار الملف"
+
+          "message":
+              "تم إلغاء اختيار الملف"
         };
       }
 
-      final file = result.files.first;
-      final bytes = file.bytes;
+      final file =
+          result.files.first;
+
+      final bytes =
+          file.bytes;
 
       if (bytes == null) {
+
         return {
+
           "success": false,
-          "message": "تعذر قراءة بيانات الملف"
+
+          "message":
+              "تعذر قراءة الملف"
         };
       }
 
@@ -42,7 +62,8 @@ class ExcelImportService {
       // قراءة الإكسل
       // =========================
 
-      final excel = Excel.decodeBytes(bytes);
+      final excel =
+          Excel.decodeBytes(bytes);
 
       // حذف بيانات الشهر القديم
       await DBHelper.deleteMonth(
@@ -53,35 +74,54 @@ class ExcelImportService {
       int processedCount = 0;
 
       // =========================
-      // قراءة الشيتات
+      // قراءة جميع الشيتات
       // =========================
 
-      for (final tableName in excel.tables.keys) {
+      for (final tableName
+          in excel.tables.keys) {
 
-        final sheet = excel.tables[tableName];
+        final sheet =
+            excel.tables[tableName];
 
-        if (sheet == null) continue;
+        if (sheet == null) {
+          continue;
+        }
 
+        // =========================
         // بدء القراءة من الصف الثاني
-        for (int i = 1; i < sheet.rows.length; i++) {
+        // =========================
 
-          final row = sheet.rows[i];
+        for (
+          int i = 1;
+          i < sheet.rows.length;
+          i++
+        ) {
 
-          if (row.isEmpty) continue;
+          final row =
+              sheet.rows[i];
+
+          if (row.isEmpty) {
+            continue;
+          }
 
           // =========================
           // قراءة الخلايا بأمان
           // =========================
 
-          String readCell(int index) {
+          String readCell(
+            int index,
+          ) {
 
             if (index >= row.length) {
               return "";
             }
 
-            final cell = row[index];
+            final cell =
+                row[index];
 
-            if (cell == null || cell.value == null) {
+            if (cell == null ||
+                cell.value == null) {
+
               return "";
             }
 
@@ -100,15 +140,39 @@ class ExcelImportService {
           // F = الحالة
           // =========================
 
-          final number = readCell(1);
-          final rank   = readCell(2);
-          final name   = readCell(3);
-          final unit   = readCell(4);
-          final status = readCell(5);
+          final number =
+              readCell(1);
+
+          final rank =
+              readCell(2);
+
+          final name =
+              readCell(3);
+
+          final unit =
+              readCell(4);
+
+          final status =
+              readCell(5);
 
           // تجاهل الصفوف الفارغة
-          if (number.isEmpty && name.isEmpty) {
+          if (number.isEmpty &&
+              name.isEmpty) {
+
             continue;
+          }
+
+          // =========================
+          // تنظيف الحالة
+          // =========================
+
+          String finalStatus =
+              status.trim();
+
+          if (finalStatus.isEmpty ||
+              finalStatus == "null") {
+
+            finalStatus = "-";
           }
 
           // =========================
@@ -118,15 +182,17 @@ class ExcelImportService {
           await DBHelper.insertTimeline({
 
             'number': number,
+
             'name': name,
+
             'rank': rank,
+
             'unit': unit,
 
-            'status': status.isEmpty
-                ? "-"
-                : status,
+            'status': finalStatus,
 
             'month': selectedMonth,
+
             'year': selectedYear,
           });
 
@@ -141,7 +207,9 @@ class ExcelImportService {
       if (processedCount == 0) {
 
         return {
+
           "success": false,
+
           "message":
               "لم يتم العثور على بيانات داخل الملف"
         };
