@@ -49,14 +49,17 @@ class _ManageIndividualScreenState extends State<ManageIndividualScreen> {
       final existing =
           await DBHelper.getPersonTimeline(data['number'] as String);
 
-      final isDuplicate = existing.any(
+      final match = existing.where(
         (e) =>
             e['month'] == selectedMonth &&
             e['year'] == selectedYear,
       );
 
-      if (isDuplicate) {
-        await DBHelper.updateTimeline(data);
+      if (match.isNotEmpty) {
+        // 🔴 UPDATE يحتاج ID
+        final id = match.first['id'] as int;
+
+        await DBHelper.updateTimeline(id, data);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("تم تحديث بيانات الفرد ✔")),

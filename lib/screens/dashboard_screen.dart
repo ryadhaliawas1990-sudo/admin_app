@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import '../db/db_helper.dart';
 
+import 'package:excel/excel.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart';
+
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() =>
-      _DashboardScreenState();
+  State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState
-    extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen> {
 
   int totalPeople = 0;
   int totalRecords = 0;
@@ -20,10 +23,11 @@ class _DashboardScreenState
 
   bool loading = true;
 
-  final TextEditingController searchController =
-      TextEditingController();
-
+  final TextEditingController searchController = TextEditingController();
   List<Map<String, dynamic>> searchResults = [];
+
+  String latestMonth = "";
+  String latestYear = "";
 
   @override
   void initState() {
@@ -34,11 +38,8 @@ class _DashboardScreenState
   // =========================
   // تحميل الإحصائيات
   // =========================
-
   Future<void> loadStats() async {
-
     try {
-
       final db = await DBHelper.database;
 
       final people = await db.rawQuery('''
@@ -56,265 +57,201 @@ class _DashboardScreenState
         FROM timeline
       ''');
 
-      // =========================
-      // توزيع الحالات الصحيح
-      // =========================
+      // آخر شهر
+      final latest = await db.rawQuery('''
+        SELECT year, month
+        FROM timeline
+        ORDER BY CAST(year AS INTEGER) DESC,
+                 CAST(month AS INTEGER) DESC
+        LIMIT 1
+      ''');
 
+      if (latest.isNotEmpty) {
+        latestYear = latest.first['year'].toString();
+        latestMonth = latest.first['month'].toString();
+      }
+
+      // توزيع الحالات (آخر شهر فقط)
       final statuses = await db.rawQuery('''
         SELECT status, COUNT(*) as count
         FROM timeline
-        WHERE status IS NOT NULL
-        AND TRIM(status) != ''
-        AND status != '-'
+        WHERE year = ?
+          AND month = ?
+          AND status IS NOT NULL
+          AND TRIM(status) != ''
+          AND status != '-'
         GROUP BY status
         ORDER BY count DESC
-      ''');
+      ''', [latestYear, latestMonth]);
 
-      Map<String, int> statusMap = {};
+      Map<String, int> map = {};
 
       for (var s in statuses) {
-
-        final key =
-            s['status'].toString().trim();
-
-        final value =
-            int.tryParse(
-                  s['count'].toString(),
-                ) ??
-                0;
+        final key = s['status'].toString().trim();
+        final value = int.tryParse(s['count'].toString()) ?? 0;
 
         if (key.isNotEmpty) {
-          statusMap[key] = value;
+          map[key] = value;
         }
       }
 
       if (!mounted) return;
 
       setState(() {
+        totalPeople = int.tryParse(people.first['count'].toString()) ?? 0;
+        totalRecords = int.tryParse(records.first['count'].toString()) ?? 0;
+        totalYears = int.tryParse(years.first['count'].toString()) ?? 0;
 
-        totalPeople =
-            int.tryParse(
-                  people.first['count'].toString(),
-                ) ??
-                0;
-
-        totalRecords =
-            int.tryParse(
-                  records.first['count'].toString(),
-                ) ??
-                0;
-
-        totalYears =
-            int.tryParse(
-                  years.first['count'].toString(),
-                ) ??
-                0;
-
-        statusCount = statusMap;
-
+        statusCount = map;
         loading = false;
       });
 
     } catch (e) {
-
-      debugPrint(
-        "DASHBOARD ERROR: $e",
-      );
-
-      if (!mounted) return;
-
-      setState(() {
-        loading = false;
-      });
+      debugPrint("ERROR: $e");
+      setState(() => loading = false);
     }
   }
 
   // =========================
-  // البحث المباشر
+  // البحث
   // =========================
-
-  Future<void> searchPeople(
-      String value) async {
-
+  Future<void> searchPeople(String value) async {
     final db = await DBHelper.database;
 
     if (value.trim().isEmpty) {
-
-      setState(() {
-        searchResults = [];
-      });
-
+      setState(() => searchResults = []);
       return;
     }
 
     final data = await db.query(
       'timeline',
-      where:
-          'number LIKE ? OR name LIKE ?',
-      whereArgs: [
-        '%$value%',
-        '%$value%',
-      ],
+      where: 'number LIKE ? OR name LIKE ?',
+      whereArgs: ['%$value%', '%$value%'],
       limit: 30,
     );
 
-    setState(() {
-      searchResults = data;
-    });
+    setState(() => searchResults = data);
+  }
+
+  // =========================
+  // تصدير Excel للحالة
+  // =========================
+  Future<void> exportStatusExcel(String status) async {
+    final db = await DBHelper.database;
+
+    final data = await db.query(
+      'timeline',
+      where: '''
+        status = ?
+        AND year = ?
+        AND month = ?
+      ''',
+      whereArgs: [status, latestYear, latestMonth],
+    );
+
+    if (data.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("لا توجد بيانات")),
+      );
+      return;
+    }
+
+    final excel = Excel.createExcel();
+    final sheet = excel['Sheet1'];
+
+    sheet.appendRow([
+      TextCellValue("الرقم"),
+      TextCellValue("الاسم"),
+      TextCellValue("الرتبة"),
+      TextCellValue("الوحدة"),
+      TextCellValue("الحالة"),
+      TextCellValue("الشهر"),
+      TextCellValue("السنة"),
+    ]);
+
+    for (var row in data) {
+      sheet.appendRow([
+        TextCellValue(row['number']?.toString() ?? ''),
+        TextCellValue(row['name']?.toString() ?? ''),
+        TextCellValue(row['rank']?.toString() ?? ''),
+        TextCellValue(row['unit']?.toString() ?? ''),
+        TextCellValue(row['status']?.toString() ?? ''),
+        TextCellValue(row['month']?.toString() ?? ''),
+        TextCellValue(row['year']?.toString() ?? ''),
+      ]);
+    }
+
+    final dir = await getTemporaryDirectory();
+    final file = File("${dir.path}/status_$status.xlsx");
+
+    await file.writeAsBytes(excel.encode()!);
+
+    await OpenFile.open(file.path);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("تم تصدير $status")),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
-      appBar: AppBar(
-        title: const Text(
-          "لوحة التحكم",
-        ),
-        centerTitle: true,
-      ),
-
+      appBar: AppBar(title: const Text("لوحة التحكم")),
       body: loading
-
-          ? const Center(
-              child:
-                  CircularProgressIndicator(),
-            )
-
+          ? const Center(child: CircularProgressIndicator())
           : Padding(
-              padding:
-                  const EdgeInsets.all(16),
-
+              padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
 
-                  // =========================
-                  // الإحصائيات
-                  // =========================
-
                   Row(
                     children: [
-
-                      Expanded(
-                        child: _card(
-                          "الأفراد",
-                          totalPeople,
-                        ),
-                      ),
-
+                      Expanded(child: _card("الأفراد", totalPeople)),
                       const SizedBox(width: 10),
-
-                      Expanded(
-                        child: _card(
-                          "السجلات",
-                          totalRecords,
-                        ),
-                      ),
+                      Expanded(child: _card("السجلات", totalRecords)),
                     ],
                   ),
 
                   const SizedBox(height: 10),
-
-                  _card(
-                    "السنوات المسجلة",
-                    totalYears,
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // =========================
-                  // البحث المباشر
-                  // =========================
-
-                  TextField(
-                    controller:
-                        searchController,
-
-                    decoration:
-                        const InputDecoration(
-                      labelText:
-                          "بحث بالاسم أو الرقم العسكري",
-                      border:
-                          OutlineInputBorder(),
-                      prefixIcon:
-                          Icon(Icons.search),
-                    ),
-
-                    onChanged: (value) {
-                      searchPeople(value);
-                    },
-                  ),
+                  _card("السنوات", totalYears),
 
                   const SizedBox(height: 15),
 
-                  // =========================
-                  // نتائج البحث
-                  // =========================
+                  TextField(
+                    controller: searchController,
+                    decoration: const InputDecoration(
+                      labelText: "بحث",
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: searchPeople,
+                  ),
+
+                  const SizedBox(height: 10),
 
                   if (searchResults.isNotEmpty)
-
-                    Container(
-                      height: 220,
-
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Colors.grey,
-                        ),
-                        borderRadius:
-                            BorderRadius.circular(10),
-                      ),
-
+                    SizedBox(
+                      height: 200,
                       child: ListView.builder(
-
-                        itemCount:
-                            searchResults.length,
-
-                        itemBuilder:
-                            (context, index) {
-
-                          final item =
-                              searchResults[index];
-
+                        itemCount: searchResults.length,
+                        itemBuilder: (_, i) {
+                          final item = searchResults[i];
                           return ListTile(
-
-                            title: Text(
-                              item['name']
-                                      ?.toString() ??
-                                  '',
-                            ),
-
-                            subtitle: Text(
-                              "الرقم: ${item['number']}",
-                            ),
-
-                            trailing: Text(
-                              item['status']
-                                      ?.toString() ??
-                                  '',
-                            ),
+                            title: Text(item['name'] ?? ''),
+                            subtitle: Text(item['number'] ?? ''),
+                            trailing: Text(item['status'] ?? ''),
                           );
                         },
                       ),
                     ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
 
-                  // =========================
-                  // توزيع الحالات
-                  // =========================
-
-                  const Align(
-                    alignment:
-                        Alignment.centerRight,
-
+                  Align(
+                    alignment: Alignment.centerRight,
                     child: Text(
-                      "توزيع الحالات",
-
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight:
-                            FontWeight.bold,
+                      "الحالات (آخر شهر: $latestMonth / $latestYear)",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
@@ -323,80 +260,32 @@ class _DashboardScreenState
 
                   Expanded(
                     child: GridView.builder(
-
-                      itemCount:
-                          statusCount.length,
-
+                      itemCount: statusCount.length,
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-
                         crossAxisCount: 2,
-                        mainAxisSpacing: 10,
-                        crossAxisSpacing: 10,
                         childAspectRatio: 2,
                       ),
+                      itemBuilder: (_, i) {
+                        final key = statusCount.keys.elementAt(i);
+                        final value = statusCount[key]!;
 
-                      itemBuilder:
-                          (context, index) {
-
-                        final key =
-                            statusCount.keys
-                                .elementAt(index);
-
-                        final value =
-                            statusCount[key]!;
-
-                        return Container(
-
-                          decoration: BoxDecoration(
-                            color:
-                                Colors.blue.shade50,
-
-                            borderRadius:
-                                BorderRadius.circular(
-                              12,
+                        return InkWell(
+                          onTap: () => exportStatusExcel(key),
+                          child: Container(
+                            margin: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(),
                             ),
-
-                            border: Border.all(
-                              color:
-                                  Colors.blueGrey,
-                            ),
-                          ),
-
-                          child: Center(
                             child: Column(
-
-                              mainAxisAlignment:
-                                  MainAxisAlignment
-                                      .center,
-
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-
-                                Text(
-                                  key,
-
-                                  style:
-                                      const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight:
-                                        FontWeight.bold,
-                                  ),
-                                ),
-
-                                const SizedBox(
-                                  height: 8,
-                                ),
-
-                                Text(
-                                  value.toString(),
-
-                                  style:
-                                      const TextStyle(
-                                    fontSize: 22,
-                                    fontWeight:
-                                        FontWeight.bold,
-                                  ),
-                                ),
+                                Text(key,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold)),
+                                Text(value.toString()),
                               ],
                             ),
                           ),
@@ -410,47 +299,15 @@ class _DashboardScreenState
     );
   }
 
-  // =========================
-  // كروت الإحصائيات
-  // =========================
-
-  Widget _card(
-      String title,
-      int value,
-      ) {
-
+  Widget _card(String title, int value) {
     return Card(
-
-      elevation: 3,
-
       child: Padding(
-        padding:
-            const EdgeInsets.all(16),
-
+        padding: const EdgeInsets.all(12),
         child: Column(
-
           children: [
-
-            Text(
-              title,
-
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            Text(
-              value.toString(),
-
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight:
-                    FontWeight.bold,
-              ),
-            ),
+            Text(title),
+            Text(value.toString(),
+                style: const TextStyle(fontSize: 22)),
           ],
         ),
       ),
