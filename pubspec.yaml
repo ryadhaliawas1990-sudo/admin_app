@@ -1,56 +1,98 @@
-name: test_app
-description: "A new Flutter project"
-publish_to: 'none'
+import 'package:flutter/material.dart';
 
-version: 1.0.0+1
+// ✅ استخدم relative imports (المهم لحل مشكلة GitHub Actions)
+import 'dashboard_screen.dart';
+import 'hr_screen.dart';
+import 'reports_archive_screen.dart';
 
-environment:
-  sdk: ">=3.0.0 <4.0.0"
+class MainApp extends StatefulWidget {
+  const MainApp({super.key});
 
-dependencies:
-  flutter:
-    sdk: flutter
+  @override
+  State<MainApp> createState() => _MainAppState();
+}
 
-  cupertino_icons: ^1.0.8
+class _MainAppState extends State<MainApp> {
+  int index = 0;
 
-  # قاعدة البيانات
-  sqflite: ^2.3.0
-  path: ^1.9.0
-  path_provider: ^2.1.2
+  final List<Widget> screens = const [
+    DashboardScreen(),
+    HrScreen(),
+    ReportsArchiveScreen(),
+  ];
 
-  # Excel
-  excel: ^4.0.6
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("نظام الإدارة"),
+      ),
 
-  # اختيار الملفات
-  file_picker: ^8.0.0
+      drawer: Drawer(
+        child: Column(
+          children: [
+            const UserAccountsDrawerHeader(
+              decoration: BoxDecoration(color: Colors.blue),
+              accountName: Text(
+                "تصميم رياض عواس",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              accountEmail: Text("781927044"),
+              currentAccountPicture: CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.person),
+              ),
+            ),
 
-  # PDF + طباعة
-  pdf: ^3.10.7
-  printing: ^5.12.0
+            _buildDrawerItem(Icons.dashboard, "لوحة التحكم", 0),
+            _buildDrawerItem(Icons.people, "الموارد البشرية", 1),
+            _buildDrawerItem(Icons.bar_chart, "التقارير", 2),
 
-  # فتح الملفات
-  open_file: ^3.5.10
+            const Spacer(),
 
-  # مشاركة الملفات
-  share_plus: ^10.0.2
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text(
+                "v1.0 - HR System",
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          ],
+        ),
+      ),
 
-  # HTML (اختياري)
-  html: ^0.15.4
+      body: screens[index],
 
-  # Word / Excel export
-  syncfusion_flutter_xlsio: ^27.1.50
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: index,
+        onTap: (i) => setState(() => index = i),
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard),
+            label: "الرئيسية",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people),
+            label: "الموارد",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bar_chart),
+            label: "التقارير",
+          ),
+        ],
+      ),
+    );
+  }
 
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-
-  flutter_lints: ^4.0.0
-
-flutter:
-  uses-material-design: true
-
-  # ✅ الخطوط (الطريقة الصحيحة)
-  fonts:
-    - family: Cairo
-      fonts:
-        - asset: assets/fonts/Cairo-Regular.ttf
+  Widget _buildDrawerItem(IconData icon, String title, int i) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      onTap: () {
+        setState(() => index = i);
+        Navigator.pop(context);
+      },
+    );
+  }
+}
