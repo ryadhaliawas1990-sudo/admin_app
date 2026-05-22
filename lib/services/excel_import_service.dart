@@ -5,6 +5,10 @@ import '../db/db_helper.dart';
 
 class ExcelImportService {
 
+  // =========================
+  // اختيار وقراءة ملف Excel
+  // =========================
+
   static Future<Map<String, dynamic>> pickAndReadExcel(
     String selectedMonth,
     String selectedYear,
@@ -65,7 +69,10 @@ class ExcelImportService {
       final excel =
           Excel.decodeBytes(bytes);
 
+      // =========================
       // حذف بيانات الشهر القديم
+      // =========================
+
       await DBHelper.deleteMonth(
         selectedMonth,
         selectedYear,
@@ -131,7 +138,7 @@ class ExcelImportService {
           }
 
           // =========================
-          // ترتيب الأعمدة الصحيح
+          // ترتيب الأعمدة
           // A = تسلسل
           // B = الرقم العسكري
           // C = الرتبة
@@ -155,7 +162,10 @@ class ExcelImportService {
           final status =
               readCell(5);
 
+          // =========================
           // تجاهل الصفوف الفارغة
+          // =========================
+
           if (number.isEmpty &&
               name.isEmpty) {
 

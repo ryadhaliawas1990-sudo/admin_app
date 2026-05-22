@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../db/db_helper.dart';
 
-import 'package:excel/excel.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
+
+// ✅ مهم: حل تعارض Border
+import 'package:excel/excel.dart' as ex;
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -156,28 +158,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return;
     }
 
-    final excel = Excel.createExcel();
+    final excel = ex.Excel.createExcel();
     final sheet = excel['Sheet1'];
 
     sheet.appendRow([
-      TextCellValue("الرقم"),
-      TextCellValue("الاسم"),
-      TextCellValue("الرتبة"),
-      TextCellValue("الوحدة"),
-      TextCellValue("الحالة"),
-      TextCellValue("الشهر"),
-      TextCellValue("السنة"),
+      ex.TextCellValue("الرقم"),
+      ex.TextCellValue("الاسم"),
+      ex.TextCellValue("الرتبة"),
+      ex.TextCellValue("الوحدة"),
+      ex.TextCellValue("الحالة"),
+      ex.TextCellValue("الشهر"),
+      ex.TextCellValue("السنة"),
     ]);
 
     for (var row in data) {
       sheet.appendRow([
-        TextCellValue(row['number']?.toString() ?? ''),
-        TextCellValue(row['name']?.toString() ?? ''),
-        TextCellValue(row['rank']?.toString() ?? ''),
-        TextCellValue(row['unit']?.toString() ?? ''),
-        TextCellValue(row['status']?.toString() ?? ''),
-        TextCellValue(row['month']?.toString() ?? ''),
-        TextCellValue(row['year']?.toString() ?? ''),
+        ex.TextCellValue(row['number']?.toString() ?? ''),
+        ex.TextCellValue(row['name']?.toString() ?? ''),
+        ex.TextCellValue(row['rank']?.toString() ?? ''),
+        ex.TextCellValue(row['unit']?.toString() ?? ''),
+        ex.TextCellValue(row['status']?.toString() ?? ''),
+        ex.TextCellValue(row['month']?.toString() ?? ''),
+        ex.TextCellValue(row['year']?.toString() ?? ''),
       ]);
     }
 
@@ -188,11 +190,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     await OpenFile.open(file.path);
 
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("تم تصدير $status")),
+      SnackBar(content: Text("تم تصدير ملف: $status")),
     );
   }
 
+  // =========================
+  // UI
+  // =========================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -250,9 +257,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     alignment: Alignment.centerRight,
                     child: Text(
                       "الحالات (آخر شهر: $latestMonth / $latestYear)",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
 
@@ -282,9 +287,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text(key,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold)),
+                                Text(
+                                  key,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                                 Text(value.toString()),
                               ],
                             ),
@@ -306,8 +314,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           children: [
             Text(title),
-            Text(value.toString(),
-                style: const TextStyle(fontSize: 22)),
+            Text(
+              value.toString(),
+              style: const TextStyle(fontSize: 22),
+            ),
           ],
         ),
       ),
