@@ -10,18 +10,13 @@ class ReportsArchiveScreen
   @override
   Widget build(BuildContext context) {
 
-    return Scaffold(
+    return const Center(
 
-      appBar: AppBar(
-        title: const Text(
-          'الأرشيف',
-        ),
-      ),
-
-      body: const Center(
-
-        child: Text(
-          'الأرشيف جاهز',
+      child: Text(
+        'الأرشيف جاهز',
+        style: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
