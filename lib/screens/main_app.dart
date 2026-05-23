@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:test_app/screens/dashboard_screen.dart';
-import 'package:test_app/screens/hr_screen.dart';
-import 'package:test_app/screens/reports_archive_screen.dart';
+import 'dashboard_screen.dart';
+import 'hr_screen.dart';
+import 'reports_archive_screen.dart';
 
 class MainApp extends StatefulWidget {
   const MainApp({super.key});
@@ -12,7 +12,6 @@ class MainApp extends StatefulWidget {
 }
 
 class _MainAppState extends State<MainApp> {
-
   int index = 0;
 
   final List<Widget> screens = [
@@ -23,7 +22,6 @@ class _MainAppState extends State<MainApp> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("نظام الإدارة"),
@@ -32,7 +30,6 @@ class _MainAppState extends State<MainApp> {
       drawer: Drawer(
         child: Column(
           children: [
-
             const UserAccountsDrawerHeader(
               decoration: BoxDecoration(color: Colors.blue),
               accountName: Text("تصميم رياض عواس"),
@@ -43,12 +40,11 @@ class _MainAppState extends State<MainApp> {
               ),
             ),
 
-            _buildDrawerItem(Icons.dashboard, "لوحة التحكم", 0),
-            _buildDrawerItem(Icons.people, "الموارد البشرية", 1),
-            _buildDrawerItem(Icons.bar_chart, "التقارير", 2),
+            _item(Icons.dashboard, "لوحة التحكم", 0),
+            _item(Icons.people, "الموارد البشرية", 1),
+            _item(Icons.bar_chart, "التقارير", 2),
 
             const Spacer(),
-
             const Padding(
               padding: EdgeInsets.all(12),
               child: Text("v1.0 - HR System"),
@@ -80,7 +76,7 @@ class _MainAppState extends State<MainApp> {
     );
   }
 
-  Widget _buildDrawerItem(IconData icon, String title, int i) {
+  Widget _item(IconData icon, String title, int i) {
     return ListTile(
       leading: Icon(icon),
       title: Text(title),
