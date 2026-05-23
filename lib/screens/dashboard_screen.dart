@@ -220,9 +220,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           final item = searchResults[i];
 
                           return ListTile(
-                            title: Text(item['name'] ?? ''),
-                            subtitle: Text(item['number'] ?? ''),
-                            trailing: Text(item['status'] ?? ''),
+                            title: Text(
+                              "${item['number'] ?? ''} - ${item['rank'] ?? ''} - ${item['name'] ?? ''}",
+                            ),
+                            subtitle: Text(
+                              "الحالة: ${item['status'] ?? ''} | الشهر: ${item['month'] ?? ''}",
+                            ),
                           );
                         },
                       ),
