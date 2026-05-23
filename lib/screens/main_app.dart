@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:admin_app/screens/dashboard_screen.dart';
-import 'package:admin_app/screens/hr_screen.dart';
-import 'package:admin_app/screens/reports_archive_screen.dart';
+import 'dashboard_screen.dart';
+import 'hr_screen.dart';
+import 'reports_archive_screen.dart';
 
 class MainApp extends StatefulWidget {
   const MainApp({super.key});
@@ -81,7 +81,11 @@ class _MainAppState extends State<MainApp> {
     );
   }
 
-  Widget _buildDrawerItem(IconData icon, String title, int i) {
+  Widget _buildDrawerItem(
+    IconData icon,
+    String title,
+    int i,
+  ) {
     return ListTile(
       leading: Icon(icon),
       title: Text(title),
