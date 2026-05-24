@@ -29,9 +29,18 @@ class _HrScreenState extends State<HrScreen> {
   List<Map<String, dynamic>> searchResults = [];
 
   final List<String> years = [
-    "2019","2020","2021","2022","2023",
-    "2024","2025","2026","2027","2028",
-    "2029","2030"
+    "2019",
+    "2020",
+    "2021",
+    "2022",
+    "2023",
+    "2024",
+    "2025",
+    "2026",
+    "2027",
+    "2028",
+    "2029",
+    "2030"
   ];
 
   @override
@@ -41,7 +50,6 @@ class _HrScreenState extends State<HrScreen> {
         title: const Text("إدارة الموارد البشرية"),
         centerTitle: true,
       ),
-
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: Padding(
@@ -89,12 +97,15 @@ class _HrScreenState extends State<HrScreen> {
                                 labelText: "الشهر",
                                 border: OutlineInputBorder(),
                               ),
-                              items: List.generate(12, (i) => (i + 1).toString())
-                                  .map((m) => DropdownMenuItem(
-                                        value: m,
-                                        child: Text("شهر $m"),
-                                      ))
-                                  .toList(),
+                              items: List.generate(
+                                12,
+                                (i) => (i + 1).toString(),
+                              ).map((m) {
+                                return DropdownMenuItem(
+                                  value: m,
+                                  child: Text("شهر $m"),
+                                );
+                              }).toList(),
                               onChanged: (v) {
                                 setState(() => importMonth = v!);
                               },
@@ -143,7 +154,8 @@ class _HrScreenState extends State<HrScreen> {
               TextField(
                 controller: searchController,
                 decoration: const InputDecoration(
-                  labelText: "بحث بالرقم أو الاسم أو الرتبة أو الوحدة أو الحالة",
+                  labelText:
+                      "بحث بالرقم أو الاسم أو الرتبة أو الوحدة أو الحالة",
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.search),
                 ),
@@ -221,6 +233,7 @@ class _HrScreenState extends State<HrScreen> {
       final excel = Excel.decodeBytes(bytes);
 
       final sheet = excel.tables[excel.tables.keys.first];
+
       if (sheet == null) return;
 
       List<Map<String, dynamic>> rows = [];
@@ -239,20 +252,28 @@ class _HrScreenState extends State<HrScreen> {
         });
       }
 
-      await ExcelToDbService.import(rows, importMonth, importYear);
+      await ExcelToDbService.import(
+        rows,
+        importMonth,
+        importYear,
+      );
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("تم الاستيراد بنجاح")),
+        const SnackBar(
+          content: Text("تم الاستيراد بنجاح"),
+        ),
       );
     } finally {
-      if (mounted) setState(() => isImporting = false);
+      if (mounted) {
+        setState(() => isImporting = false);
+      }
     }
   }
 
   // =========================
-  // SEARCH (FIXED)
+  // SEARCH
   // =========================
 
   Future<void> searchPeople(String value) async {
@@ -266,10 +287,10 @@ class _HrScreenState extends State<HrScreen> {
     final data = await db.query(
       'timeline',
       where: '''
-        number LIKE ? 
-        OR name LIKE ? 
-        OR rank LIKE ? 
-        OR unit LIKE ? 
+        number LIKE ?
+        OR name LIKE ?
+        OR rank LIKE ?
+        OR unit LIKE ?
         OR status LIKE ?
       ''',
       whereArgs: [
@@ -292,39 +313,78 @@ class _HrScreenState extends State<HrScreen> {
   Future<void> _generateFilteredReport() async {
     final db = await DBHelper.database;
 
+    final search = searchController.text.trim();
+
     final records = await db.query(
       'timeline',
-      where: 'year = ?',
-      whereArgs: [selectedYear],limit: 300
+      where: '''
+        year = ?
+        AND (
+          number LIKE ?
+          OR name LIKE ?
+          OR rank LIKE ?
+          OR unit LIKE ?
+          OR status LIKE ?
+        )
+      ''',
+      whereArgs: [
+        selectedYear,
+        '%$search%',
+        '%$search%',
+        '%$search%',
+        '%$search%',
+        '%$search%',
+      ],
+      limit: 300,
     );
+
+    if (records.isEmpty) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("لا توجد نتائج"),
+        ),
+      );
+
+      return;
+    }
 
     final pdf = pw.Document();
 
     pdf.addPage(
       pw.MultiPage(
         build: (context) => [
-          pw.Text("تقرير الموارد البشرية"),
+
+          pw.Text(
+            "تقرير الموارد البشرية",
+            textDirection: pw.TextDirection.rtl,
+          ),
+
           pw.SizedBox(height: 20),
 
           pw.Table.fromTextArray(
+            cellAlignment: pw.Alignment.centerRight,
+
             headers: [
               "الرقم",
-              "الاسم",
               "الرتبة",
+              "الاسم",
               "الوحدة",
               "الحالة",
               "الشهر",
               "السنة",
             ],
+
             data: records.map((e) {
               return [
-                e['number'] ?? '',
-                e['name'] ?? '',
-                e['rank'] ?? '',
-                e['unit'] ?? '',
-                e['status'] ?? '',
-                e['month'] ?? '',
-                e['year'] ?? '',
+                e['number']?.toString() ?? '',
+                e['rank']?.toString() ?? '',
+                e['name']?.toString() ?? '',
+                e['unit']?.toString() ?? '',
+                e['status']?.toString() ?? '',
+                e['month']?.toString() ?? '',
+                e['year']?.toString() ?? '',
               ];
             }).toList(),
           ),
@@ -333,9 +393,11 @@ class _HrScreenState extends State<HrScreen> {
     );
 
     final dir = await getTemporaryDirectory();
+
     final file = File("${dir.path}/hr_report.pdf");
 
     await file.writeAsBytes(await pdf.save());
+
     await OpenFile.open(file.path);
   }
 }
