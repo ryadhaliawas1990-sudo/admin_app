@@ -295,7 +295,7 @@ class _HrScreenState extends State<HrScreen> {
     final records = await db.query(
       'timeline',
       where: 'year = ?',
-      whereArgs: [selectedYear],
+      whereArgs: [selectedYear],limit: 300
     );
 
     final pdf = pw.Document();
