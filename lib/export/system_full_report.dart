@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
+import 'package:excel/excel.dart';
 
 class SystemFullReport {
 
@@ -10,56 +9,58 @@ class SystemFullReport {
     required String title,
   }) async {
 
-    final pdf = pw.Document();
+    final excel = Excel.createExcel();
+    final sheet = excel['System Report'];
 
-    pdf.addPage(
-      pw.MultiPage(
-        build: (context) {
-          return [
-            pw.Text(
-              title,
-              style: pw.TextStyle(
-                fontSize: 20,
-                fontWeight: pw.FontWeight.bold,
-              ),
-            ),
+    // =========================
+    // Title
+    // =========================
+    sheet.appendRow([
+      TextCellValue(title),
+    ]);
 
-            pw.SizedBox(height: 20),
+    sheet.appendRow([]);
 
-            /// =========================
-            /// FIXED TABLE (modern API)
-            /// =========================
-            pw.TableHelper.fromTextArray(
-              headers: [
-                "الرقم",
-                "الاسم",
-                "الرتبة",
-                "الوحدة",
-                "الحالة",
-              ],
+    // =========================
+    // Headers
+    // =========================
+    sheet.appendRow([
+      TextCellValue("الرقم"),
+      TextCellValue("الاسم"),
+      TextCellValue("الرتبة"),
+      TextCellValue("الوحدة"),
+      TextCellValue("الحالة"),
+    ]);
 
-              data: data.map((e) {
-                return [
-                  (e["number"] ?? "").toString(),
-                  (e["name"] ?? "").toString(),
-                  (e["rank"] ?? "").toString(),
-                  (e["unit"] ?? "").toString(),
-                  (e["status"] ?? "").toString(),
-                ];
-              }).toList(),
-            ),
-          ];
-        },
-      ),
-    );
+    // =========================
+    // Data rows
+    // =========================
+    for (final e in data) {
+      sheet.appendRow([
+        TextCellValue((e["number"] ?? "").toString()),
+        TextCellValue((e["name"] ?? "").toString()),
+        TextCellValue((e["rank"] ?? "").toString()),
+        TextCellValue((e["unit"] ?? "").toString()),
+        TextCellValue((e["status"] ?? "").toString()),
+      ]);
+    }
 
+    // =========================
+    // Save file
+    // =========================
     final dir = await getApplicationDocumentsDirectory();
 
     final file = File(
-      "${dir.path}/system_report_${DateTime.now().millisecondsSinceEpoch}.pdf",
+      "${dir.path}/system_report_${DateTime.now().millisecondsSinceEpoch}.xlsx",
     );
 
-    await file.writeAsBytes(await pdf.save());
+    final bytes = excel.encode();
+
+    if (bytes == null) {
+      throw Exception("فشل إنشاء ملف Excel");
+    }
+
+    await file.writeAsBytes(bytes);
 
     return file.path;
   }

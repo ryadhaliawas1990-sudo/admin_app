@@ -5,7 +5,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 
-import 'package:pdf/widgets.dart' as pw;
 import 'package:excel/excel.dart';
 
 import '../db/db_helper.dart';
@@ -29,18 +28,8 @@ class _HrScreenState extends State<HrScreen> {
   List<Map<String, dynamic>> searchResults = [];
 
   final List<String> years = [
-    "2019",
-    "2020",
-    "2021",
-    "2022",
-    "2023",
-    "2024",
-    "2025",
-    "2026",
-    "2027",
-    "2028",
-    "2029",
-    "2030"
+    "2019","2020","2021","2022","2023","2024","2025",
+    "2026","2027","2028","2029","2030"
   ];
 
   @override
@@ -97,15 +86,12 @@ class _HrScreenState extends State<HrScreen> {
                                 labelText: "الشهر",
                                 border: OutlineInputBorder(),
                               ),
-                              items: List.generate(
-                                12,
-                                (i) => (i + 1).toString(),
-                              ).map((m) {
-                                return DropdownMenuItem(
-                                  value: m,
-                                  child: Text("شهر $m"),
-                                );
-                              }).toList(),
+                              items: List.generate(12, (i) => (i + 1).toString())
+                                  .map((m) => DropdownMenuItem(
+                                        value: m,
+                                        child: Text("شهر $m"),
+                                      ))
+                                  .toList(),
                               onChanged: (v) {
                                 setState(() => importMonth = v!);
                               },
@@ -130,7 +116,7 @@ class _HrScreenState extends State<HrScreen> {
 
               const SizedBox(height: 25),
 
-              _buildSectionTitle("📊 إنشاء تقرير PDF"),
+              _buildSectionTitle("📊 إنشاء تقرير"),
 
               DropdownButtonFormField<String>(
                 value: selectedYear,
@@ -154,8 +140,7 @@ class _HrScreenState extends State<HrScreen> {
               TextField(
                 controller: searchController,
                 decoration: const InputDecoration(
-                  labelText:
-                      "بحث بالرقم أو الاسم أو الرتبة أو الوحدة أو الحالة",
+                  labelText: "بحث",
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.search),
                 ),
@@ -175,10 +160,10 @@ class _HrScreenState extends State<HrScreen> {
                     return Card(
                       child: ListTile(
                         title: Text(
-                          "${item['number'] ?? ''} - ${item['rank'] ?? ''} - ${item['name'] ?? ''}",
+                          "${item['number']} - ${item['rank']} - ${item['name']}",
                         ),
                         subtitle: Text(
-                          "الوحدة: ${item['unit'] ?? ''} | الحالة: ${item['status'] ?? ''} | الشهر: ${item['month'] ?? ''}",
+                          "الوحدة: ${item['unit']} | الحالة: ${item['status']}",
                         ),
                       ),
                     );
@@ -189,7 +174,7 @@ class _HrScreenState extends State<HrScreen> {
 
               ElevatedButton(
                 onPressed: _generateFilteredReport,
-                child: const Text("إنشاء التقرير PDF"),
+                child: const Text("إنشاء التقرير (Excel)"),
               ),
             ],
           ),
@@ -213,9 +198,8 @@ class _HrScreenState extends State<HrScreen> {
   }
 
   // =========================
-  // IMPORT
+  // IMPORT (بدون تغيير)
   // =========================
-
   Future<void> _pickAndImportExcel() async {
     try {
       FilePickerResult? result =
@@ -252,18 +236,12 @@ class _HrScreenState extends State<HrScreen> {
         });
       }
 
-      await ExcelToDbService.import(
-        rows,
-        importMonth,
-        importYear,
-      );
+      await ExcelToDbService.import(rows, importMonth, importYear);
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("تم الاستيراد بنجاح"),
-        ),
+        const SnackBar(content: Text("تم الاستيراد بنجاح")),
       );
     } finally {
       if (mounted) {
@@ -273,9 +251,8 @@ class _HrScreenState extends State<HrScreen> {
   }
 
   // =========================
-  // SEARCH
+  // SEARCH (بدون تغيير)
   // =========================
-
   Future<void> searchPeople(String value) async {
     final db = await DBHelper.database;
 
@@ -293,13 +270,7 @@ class _HrScreenState extends State<HrScreen> {
         OR unit LIKE ?
         OR status LIKE ?
       ''',
-      whereArgs: [
-        '%$value%',
-        '%$value%',
-        '%$value%',
-        '%$value%',
-        '%$value%',
-      ],
+      whereArgs: List.filled(5, '%$value%'),
       limit: 50,
     );
 
@@ -307,9 +278,8 @@ class _HrScreenState extends State<HrScreen> {
   }
 
   // =========================
-  // PDF
+  // REPORT (EXCEL بدل PDF)
   // =========================
-
   Future<void> _generateFilteredReport() async {
     final db = await DBHelper.database;
 
@@ -342,61 +312,45 @@ class _HrScreenState extends State<HrScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("لا توجد نتائج"),
-        ),
+        const SnackBar(content: Text("لا توجد نتائج")),
       );
-
       return;
     }
 
-    final pdf = pw.Document();
+    final excel = Excel.createExcel();
+    final sheet = excel['HR Report'];
 
-    pdf.addPage(
-      pw.MultiPage(
-        build: (context) => [
+    sheet.appendRow([
+      TextCellValue("الرقم"),
+      TextCellValue("الرتبة"),
+      TextCellValue("الاسم"),
+      TextCellValue("الوحدة"),
+      TextCellValue("الحالة"),
+      TextCellValue("الشهر"),
+      TextCellValue("السنة"),
+    ]);
 
-          pw.Text(
-            "تقرير الموارد البشرية",
-            textDirection: pw.TextDirection.rtl,
-          ),
+    for (var e in records) {
+      sheet.appendRow([
+        TextCellValue(e['number'] ?? ''),
+        TextCellValue(e['rank'] ?? ''),
+        TextCellValue(e['name'] ?? ''),
+        TextCellValue(e['unit'] ?? ''),
+        TextCellValue(e['status'] ?? ''),
+        TextCellValue(e['month'] ?? ''),
+        TextCellValue(e['year'] ?? ''),
+      ]);
+    }
 
-          pw.SizedBox(height: 20),
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File("${dir.path}/hr_report.xlsx");
 
-          pw.Table.fromTextArray(
-            cellAlignment: pw.Alignment.centerRight,
+    final bytes = excel.encode();
+    if (bytes == null) {
+      throw Exception("فشل إنشاء Excel");
+    }
 
-            headers: [
-              "الرقم",
-              "الرتبة",
-              "الاسم",
-              "الوحدة",
-              "الحالة",
-              "الشهر",
-              "السنة",
-            ],
-
-            data: records.map((e) {
-              return [
-                e['number']?.toString() ?? '',
-                e['rank']?.toString() ?? '',
-                e['name']?.toString() ?? '',
-                e['unit']?.toString() ?? '',
-                e['status']?.toString() ?? '',
-                e['month']?.toString() ?? '',
-                e['year']?.toString() ?? '',
-              ];
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-
-    final dir = await getTemporaryDirectory();
-
-    final file = File("${dir.path}/hr_report.pdf");
-
-    await file.writeAsBytes(await pdf.save());
+    await file.writeAsBytes(bytes);
 
     await OpenFile.open(file.path);
   }

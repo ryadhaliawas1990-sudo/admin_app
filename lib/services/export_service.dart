@@ -1,7 +1,5 @@
 import 'dart:io';
 import 'package:excel/excel.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 
@@ -10,7 +8,7 @@ import '../db/db_helper.dart';
 class ExportService {
 
   // =========================
-  // Excel Export
+  // Excel Export (UNCHANGED)
   // =========================
   static Future<String?> exportExcel({
     String? year,
@@ -81,7 +79,7 @@ class ExportService {
   }
 
   // =========================
-  // PDF Export
+  // PDF Export (DISABLED بالكامل)
   // =========================
   static Future<String?> exportPdf({
     String title = "تقرير رسمي",
@@ -90,101 +88,9 @@ class ExportService {
     String? unit,
   }) async {
 
-    final db = await DBHelper.database;
-
-    String query = "SELECT * FROM timeline WHERE 1=1";
-    List args = [];
-
-    if (year != null) {
-      query += " AND year = ?";
-      args.add(year);
-    }
-
-    if (status != null) {
-      query += " AND status = ?";
-      args.add(status);
-    }
-
-    if (unit != null) {
-      query += " AND unit = ?";
-      args.add(unit);
-    }
-
-    final data = await db.rawQuery(query, args);
-
-    final pdf = pw.Document();
-
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        build: (context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-
-              pw.Center(
-                child: pw.Text(
-                  title,
-                  style: pw.TextStyle(
-                    fontSize: 18,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-              ),
-
-              pw.SizedBox(height: 10),
-
-              pw.Text("السنة: ${year ?? 'الكل'}"),
-              pw.Text("الحالة: ${status ?? 'الكل'}"),
-              pw.Text("الوحدة: ${unit ?? 'الكل'}"),
-
-              pw.SizedBox(height: 10),
-
-              pw.TableHelper.fromTextArray(
-                headers: [
-                  "الرقم",
-                  "الاسم",
-                  "الرتبة",
-                  "الوحدة",
-                  "الحالة",
-                  "الشهر",
-                  "السنة",
-                ],
-                data: data.map((e) {
-                  return [
-                    (e['number'] ?? '').toString(),
-                    (e['name'] ?? '').toString(),
-                    (e['rank'] ?? '').toString(),
-                    (e['unit'] ?? '').toString(),
-                    (e['status'] ?? '').toString(),
-                    (e['month'] ?? '').toString(),
-                    (e['year'] ?? '').toString(),
-                  ];
-                }).toList(),
-              ),
-
-              pw.SizedBox(height: 20),
-
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text("التوقيع: __________"),
-                  pw.Text("التوقيع: __________"),
-                ],
-              ),
-            ],
-          );
-        },
-      ),
+    // 🚫 تم تعطيل PDF نهائياً لمنع مشاكل المربعات
+    throw Exception(
+      "PDF Export is disabled. Use ExcelExport instead."
     );
-
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File("${dir.path}/report.pdf");
-
-    await file.writeAsBytes(await pdf.save());
-
-    await OpenFile.open(file.path);
-
-    return file.path;
   }
 }

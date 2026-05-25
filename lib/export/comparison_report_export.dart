@@ -1,107 +1,49 @@
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
+import 'package:excel/excel.dart';
 
 class ComparisonReportExport {
 
   // =========================
-  // 📄 PDF EXPORT
+  // 📊 EXCEL EXPORT (FINAL VERSION)
   // =========================
-  static Future<String> exportPdf({
+  static Future<String> exportExcel({
     required List<String> months,
     required List<Map<String, dynamic>> people,
     required Map<String, List<Map<String, dynamic>>> dataByMonth,
     required String title,
   }) async {
 
-    final pdf = pw.Document();
+    final excel = Excel.createExcel();
+    final sheet = excel['Comparison Report'];
 
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4.landscape,
-        build: (context) {
+    // =========================
+    // Title
+    // =========================
+    sheet.appendRow([
+      TextCellValue(title),
+    ]);
 
-          return [
+    sheet.appendRow([]);
 
-            pw.Text(
-              title,
-              style: pw.TextStyle(
-                fontSize: 18,
-                fontWeight: pw.FontWeight.bold,
-              ),
-            ),
+    // =========================
+    // Header
+    // =========================
+    sheet.appendRow([
+      TextCellValue("الرقم"),
+      TextCellValue("الاسم"),
+      ...months.map((m) => TextCellValue(m)),
+    ]);
 
-            pw.SizedBox(height: 10),
-
-            pw.TableHelper.fromTextArray(
-              headers: [
-                "الرقم",
-                "الاسم",
-                ...months,
-              ],
-
-              data: people.map((p) {
-
-                return [
-                  (p["number"] ?? "").toString(),
-                  (p["name"] ?? "").toString(),
-
-                  ...months.map((m) {
-
-                    final monthData = dataByMonth[m] ?? [];
-
-                    final exists = monthData.any(
-                      (e) => e["number"] == p["number"],
-                    );
-
-                    return exists ? "✔" : "✖";
-                  }),
-                ];
-              }).toList(),
-            ),
-          ];
-        },
-      ),
-    );
-
-    final dir = await getApplicationDocumentsDirectory();
-
-    final file = File(
-      "${dir.path}/comparison_${DateTime.now().millisecondsSinceEpoch}.pdf",
-    );
-
-    await file.writeAsBytes(await pdf.save());
-
-    return file.path;
-  }
-
-  // =========================
-  // 📊 EXCEL EXPORT (CSV بسيط)
-  // =========================
-  static Future<String> exportExcel({
-    required List<String> months,
-    required List<Map<String, dynamic>> people,
-    required Map<String, List<Map<String, dynamic>>> dataByMonth,
-  }) async {
-
-    final dir = await getApplicationDocumentsDirectory();
-
-    final file = File(
-      "${dir.path}/comparison_${DateTime.now().millisecondsSinceEpoch}.csv",
-    );
-
-    final buffer = StringBuffer();
-
-    // header
-    buffer.writeln("الرقم,الاسم,${months.join(",")}");
-
+    // =========================
+    // Data Rows
+    // =========================
     for (var p in people) {
 
-      final row = <String>[];
+      final row = <TextCellValue>[];
 
-      row.add((p["number"] ?? "").toString());
-      row.add((p["name"] ?? "").toString());
+      row.add(TextCellValue((p["number"] ?? "").toString()));
+      row.add(TextCellValue((p["name"] ?? "").toString()));
 
       for (var m in months) {
 
@@ -111,13 +53,28 @@ class ComparisonReportExport {
           (e) => e["number"] == p["number"],
         );
 
-        row.add(exists ? "1" : "0");
+        row.add(TextCellValue(exists ? "✔" : "✖"));
       }
 
-      buffer.writeln(row.join(","));
+      sheet.appendRow(row);
     }
 
-    await file.writeAsString(buffer.toString());
+    // =========================
+    // Save file
+    // =========================
+    final dir = await getApplicationDocumentsDirectory();
+
+    final file = File(
+      "${dir.path}/comparison_${DateTime.now().millisecondsSinceEpoch}.xlsx",
+    );
+
+    final bytes = excel.encode();
+
+    if (bytes == null) {
+      throw Exception("فشل إنشاء ملف Excel");
+    }
+
+    await file.writeAsBytes(bytes);
 
     return file.path;
   }
