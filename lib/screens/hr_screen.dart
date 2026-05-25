@@ -23,12 +23,24 @@ class _HrScreenState extends State<HrScreen> {
 
   bool isImporting = false;
 
-  final TextEditingController searchController = TextEditingController();
+  final TextEditingController searchController =
+      TextEditingController();
+
   List<Map<String, dynamic>> searchResults = [];
 
   final List<String> years = [
-    "2019","2020","2021","2022","2023","2024","2025",
-    "2026","2027","2028","2029","2030"
+    "2019",
+    "2020",
+    "2021",
+    "2022",
+    "2023",
+    "2024",
+    "2025",
+    "2026",
+    "2027",
+    "2028",
+    "2029",
+    "2030"
   ];
 
   @override
@@ -44,7 +56,6 @@ class _HrScreenState extends State<HrScreen> {
           padding: const EdgeInsets.all(16),
           child: ListView(
             children: [
-
               _buildSectionTitle("📥 استيراد كشوفات الأفراد"),
 
               Card(
@@ -53,10 +64,8 @@ class _HrScreenState extends State<HrScreen> {
                   padding: const EdgeInsets.all(12),
                   child: Column(
                     children: [
-
                       Row(
                         children: [
-
                           Expanded(
                             child: DropdownButtonFormField<String>(
                               value: importYear,
@@ -85,12 +94,15 @@ class _HrScreenState extends State<HrScreen> {
                                 labelText: "الشهر",
                                 border: OutlineInputBorder(),
                               ),
-                              items: List.generate(12, (i) => (i + 1).toString())
-                                  .map((m) => DropdownMenuItem(
-                                        value: m,
-                                        child: Text("شهر $m"),
-                                      ))
-                                  .toList(),
+                              items: List.generate(
+                                12,
+                                (i) => (i + 1).toString(),
+                              ).map((m) {
+                                return DropdownMenuItem(
+                                  value: m,
+                                  child: Text("شهر $m"),
+                                );
+                              }).toList(),
                               onChanged: (v) {
                                 setState(() => importMonth = v!);
                               },
@@ -151,7 +163,8 @@ class _HrScreenState extends State<HrScreen> {
               if (searchResults.isNotEmpty)
                 ListView.builder(
                   shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
+                  physics:
+                      const NeverScrollableScrollPhysics(),
                   itemCount: searchResults.length,
                   itemBuilder: (context, i) {
                     final item = searchResults[i];
@@ -199,6 +212,7 @@ class _HrScreenState extends State<HrScreen> {
   // =========================
   // IMPORT
   // =========================
+
   Future<void> _pickAndImportExcel() async {
     try {
       FilePickerResult? result =
@@ -212,10 +226,14 @@ class _HrScreenState extends State<HrScreen> {
       setState(() => isImporting = true);
 
       final file = File(result.files.single.path!);
+
       final bytes = await file.readAsBytes();
+
       final excel = Excel.decodeBytes(bytes);
 
-      final sheet = excel.tables[excel.tables.keys.first];
+      final sheet =
+          excel.tables[excel.tables.keys.first];
+
       if (sheet == null) return;
 
       List<Map<String, dynamic>> rows = [];
@@ -224,22 +242,43 @@ class _HrScreenState extends State<HrScreen> {
         final row = sheet.rows[i];
 
         rows.add({
-          "number": row[1]?.value?.toString() ?? "",
-          "rank": row[2]?.value?.toString() ?? "",
-          "name": row[3]?.value?.toString() ?? "",
-          "unit": row[4]?.value?.toString() ?? "",
-          "status": row[5]?.value?.toString() ?? "",
+          "number": row.isNotEmpty
+              ? row[0]?.value?.toString() ?? ""
+              : "",
+
+          "rank": row.length > 1
+              ? row[1]?.value?.toString() ?? ""
+              : "",
+
+          "name": row.length > 2
+              ? row[2]?.value?.toString() ?? ""
+              : "",
+
+          "unit": row.length > 3
+              ? row[3]?.value?.toString() ?? ""
+              : "",
+
+          "status": row.length > 4
+              ? row[4]?.value?.toString() ?? ""
+              : "",
+
           "month": importMonth,
           "year": importYear,
         });
       }
 
-      await ExcelToDbService.import(rows, importMonth, importYear);
+      await ExcelToDbService.import(
+        rows,
+        importMonth,
+        importYear,
+      );
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("تم الاستيراد بنجاح")),
+        const SnackBar(
+          content: Text("تم الاستيراد بنجاح"),
+        ),
       );
     } finally {
       if (mounted) {
@@ -251,6 +290,7 @@ class _HrScreenState extends State<HrScreen> {
   // =========================
   // SEARCH
   // =========================
+
   Future<void> searchPeople(String value) async {
     final db = await DBHelper.database;
 
@@ -276,8 +316,9 @@ class _HrScreenState extends State<HrScreen> {
   }
 
   // =========================
-  // EXPORT EXCEL (FIXED)
+  // EXPORT EXCEL
   // =========================
+
   Future<void> _generateFilteredReport() async {
     final db = await DBHelper.database;
 
@@ -310,12 +351,16 @@ class _HrScreenState extends State<HrScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("لا توجد نتائج")),
+        const SnackBar(
+          content: Text("لا توجد نتائج"),
+        ),
       );
+
       return;
     }
 
     final excel = Excel.createExcel();
+
     final sheet = excel['HR Report'];
 
     sheet.appendRow([
@@ -330,25 +375,37 @@ class _HrScreenState extends State<HrScreen> {
 
     for (final e in records) {
       sheet.appendRow([
-        TextCellValue((e['number'] ?? '').toString()),
-        TextCellValue((e['rank'] ?? '').toString()),
-        TextCellValue((e['name'] ?? '').toString()),
-        TextCellValue((e['unit'] ?? '').toString()),
-        TextCellValue((e['status'] ?? '').toString()),
-        TextCellValue((e['month'] ?? '').toString()),
-        TextCellValue((e['year'] ?? '').toString()),
+        TextCellValue(
+            (e['number'] ?? '').toString()),
+        TextCellValue(
+            (e['rank'] ?? '').toString()),
+        TextCellValue(
+            (e['name'] ?? '').toString()),
+        TextCellValue(
+            (e['unit'] ?? '').toString()),
+        TextCellValue(
+            (e['status'] ?? '').toString()),
+        TextCellValue(
+            (e['month'] ?? '').toString()),
+        TextCellValue(
+            (e['year'] ?? '').toString()),
       ]);
     }
 
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File("${dir.path}/hr_report.xlsx");
+    final dir =
+        await getApplicationDocumentsDirectory();
+
+    final file =
+        File("${dir.path}/hr_report.xlsx");
 
     final bytes = excel.encode();
+
     if (bytes == null) {
       throw Exception("فشل إنشاء Excel");
     }
 
     await file.writeAsBytes(bytes);
+
     await OpenFile.open(file.path);
   }
 }
