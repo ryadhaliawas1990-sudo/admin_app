@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../export/excel_export.dart';
+import '../export/final_report_excel.dart';
 
 class ExportScreen extends StatefulWidget {
   const ExportScreen({super.key});
@@ -28,14 +28,26 @@ class _ExportScreenState extends State<ExportScreen> {
     });
 
     try {
-      final path = await ExcelExport.exportFiltered(
-        status: selectedStatus,
-        unit: selectedUnit,
-        rank: selectedRank,
+
+      // =========================
+      // Excel الجديد (مؤقت ببيانات تجريبية)
+      // =========================
+      await FinalReportExcel.export(
+        months: ['1', '2', '3'],
+        people: [
+          {
+            "number": "123",
+            "name": "Test User",
+            "rank": selectedRank ?? "-",
+            "unit": selectedUnit ?? "-",
+            "status": selectedStatus ?? "-",
+            "month": "1",
+          }
+        ],
       );
 
       setState(() {
-        message = 'تم التصدير بنجاح ✔\n$path';
+        message = 'تم التصدير بنجاح ✔';
       });
 
     } catch (e) {
