@@ -45,7 +45,6 @@ class _HrScreenState extends State<HrScreen> {
           padding: const EdgeInsets.all(16),
           child: ListView(
             children: [
-
               _buildSectionTitle("📥 استيراد كشوفات الأفراد"),
 
               Card(
@@ -54,10 +53,8 @@ class _HrScreenState extends State<HrScreen> {
                   padding: const EdgeInsets.all(12),
                   child: Column(
                     children: [
-
                       Row(
                         children: [
-
                           Expanded(
                             child: DropdownButtonFormField<String>(
                               value: importYear,
@@ -76,9 +73,7 @@ class _HrScreenState extends State<HrScreen> {
                               },
                             ),
                           ),
-
                           const SizedBox(width: 10),
-
                           Expanded(
                             child: DropdownButtonFormField<String>(
                               value: importMonth,
@@ -198,8 +193,9 @@ class _HrScreenState extends State<HrScreen> {
   }
 
   // =========================
-  // IMPORT (بدون تغيير)
+  // IMPORT
   // =========================
+
   Future<void> _pickAndImportExcel() async {
     try {
       FilePickerResult? result =
@@ -217,7 +213,6 @@ class _HrScreenState extends State<HrScreen> {
       final excel = Excel.decodeBytes(bytes);
 
       final sheet = excel.tables[excel.tables.keys.first];
-
       if (sheet == null) return;
 
       List<Map<String, dynamic>> rows = [];
@@ -251,8 +246,9 @@ class _HrScreenState extends State<HrScreen> {
   }
 
   // =========================
-  // SEARCH (بدون تغيير)
+  // SEARCH
   // =========================
+
   Future<void> searchPeople(String value) async {
     final db = await DBHelper.database;
 
@@ -278,8 +274,9 @@ class _HrScreenState extends State<HrScreen> {
   }
 
   // =========================
-  // REPORT (EXCEL بدل PDF)
+  // REPORT (EXCEL)
   // =========================
+
   Future<void> _generateFilteredReport() async {
     final db = await DBHelper.database;
 
@@ -314,6 +311,7 @@ class _HrScreenState extends State<HrScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("لا توجد نتائج")),
       );
+
       return;
     }
 
@@ -332,13 +330,13 @@ class _HrScreenState extends State<HrScreen> {
 
     for (var e in records) {
       sheet.appendRow([
-        TextCellValue(e['number'] ?? ''),
-        TextCellValue(e['rank'] ?? ''),
-        TextCellValue(e['name'] ?? ''),
-        TextCellValue(e['unit'] ?? ''),
-        TextCellValue(e['status'] ?? ''),
-        TextCellValue(e['month'] ?? ''),
-        TextCellValue(e['year'] ?? ''),
+        TextCellValue((e['number'] ?? '').toString()),
+        TextCellValue((e['rank'] ?? '').toString()),
+        TextCellValue((e['name'] ?? '').toString()),
+        TextCellValue((e['unit'] ?? '').toString()),
+        TextCellValue((e['status'] ?? '').toString()),
+        TextCellValue((e['month'] ?? '').toString()),
+        TextCellValue((e['year'] ?? '').toString()),
       ]);
     }
 
@@ -351,7 +349,6 @@ class _HrScreenState extends State<HrScreen> {
     }
 
     await file.writeAsBytes(bytes);
-
     await OpenFile.open(file.path);
   }
 }
