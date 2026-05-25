@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -15,6 +16,15 @@ class FinalReportPdf {
 
     final pdf = pw.Document();
 
+    // =========================
+    // تحميل الخط العربي
+    // =========================
+    final fontData = await rootBundle.load(
+      "assets/fonts/Cairo-Regular.ttf",
+    );
+
+    final ttf = pw.Font.ttf(fontData);
+
     final person = people.isNotEmpty ? people.first : {};
 
     final String pNumber = person["number"]?.toString() ?? "-";
@@ -22,14 +32,14 @@ class FinalReportPdf {
     final String pRank = person["rank"]?.toString() ?? "-";
     final String pUnit = person["unit"]?.toString() ?? "-";
 
-    /// =========================
-    /// تجهيز أعمدة الشهور
-    /// =========================
+    // =========================
+    // تجهيز أعمدة الشهور
+    // =========================
     final headers = months;
 
-    /// =========================
-    /// بناء صف الحالات
-    /// =========================
+    // =========================
+    // بناء صف الحالات
+    // =========================
     final statusRow = months.map((m) {
       String statusValue = "-";
 
@@ -43,9 +53,9 @@ class FinalReportPdf {
       return statusValue;
     }).toList();
 
-    /// =========================
-    /// إضافة صفحة PDF
-    /// =========================
+    // =========================
+    // إنشاء الصفحة
+    // =========================
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -58,13 +68,15 @@ class FinalReportPdf {
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
 
-                /// =====================
-                /// العنوان
-                /// =====================
+                // =====================
+                // العنوان
+                // =====================
                 pw.Center(
                   child: pw.Text(
                     "تقرير سجل الحالة الدوري",
+                    textDirection: pw.TextDirection.rtl,
                     style: pw.TextStyle(
+                      font: ttf,
                       fontSize: 20,
                       fontWeight: pw.FontWeight.bold,
                     ),
@@ -75,15 +87,19 @@ class FinalReportPdf {
                   pw.Center(
                     child: pw.Text(
                       headerText,
-                      style: const pw.TextStyle(fontSize: 14),
+                      textDirection: pw.TextDirection.rtl,
+                      style: pw.TextStyle(
+                        font: ttf,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
 
                 pw.SizedBox(height: 20),
 
-                /// =====================
-                /// بيانات الفرد
-                /// =====================
+                // =====================
+                // بيانات الفرد
+                // =====================
                 pw.Container(
                   padding: const pw.EdgeInsets.all(10),
                   decoration: pw.BoxDecoration(
@@ -92,41 +108,70 @@ class FinalReportPdf {
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text("الرقم العسكري: $pNumber"),
-                      pw.Text("الرتبة العسكرية: $pRank"),
-                      pw.Text("الاسم الكامل: $pName"),
-                      pw.Text("الوحدة / التشكيل: $pUnit"),
+
+                      pw.Text(
+                        "الرقم العسكري: $pNumber",
+                        style: pw.TextStyle(font: ttf),
+                      ),
+
+                      pw.Text(
+                        "الرتبة العسكرية: $pRank",
+                        style: pw.TextStyle(font: ttf),
+                      ),
+
+                      pw.Text(
+                        "الاسم الكامل: $pName",
+                        style: pw.TextStyle(font: ttf),
+                      ),
+
+                      pw.Text(
+                        "الوحدة / التشكيل: $pUnit",
+                        style: pw.TextStyle(font: ttf),
+                      ),
                     ],
                   ),
                 ),
 
                 pw.SizedBox(height: 20),
 
-                /// =====================
-                /// جدول الشهور والحالات
-                /// =====================
+                // =====================
+                // جدول الشهور والحالات
+                // =====================
                 pw.TableHelper.fromTextArray(
                   headers: headers,
                   data: [statusRow],
                   border: pw.TableBorder.all(width: 0.5),
 
                   headerStyle: pw.TextStyle(
+                    font: ttf,
                     fontWeight: pw.FontWeight.bold,
                   ),
 
+                  cellStyle: pw.TextStyle(
+                    font: ttf,
+                  ),
+
+                  headerAlignment: pw.Alignment.center,
                   cellAlignment: pw.Alignment.center,
                 ),
 
                 pw.SizedBox(height: 30),
 
-                /// =====================
-                /// التوقيعات
-                /// =====================
+                // =====================
+                // التوقيعات
+                // =====================
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text("توقيع مدير القسم: ............"),
-                    pw.Text("توقيع الاعتماد: ............"),
+                    pw.Text(
+                      "توقيع مدير القسم: ............",
+                      style: pw.TextStyle(font: ttf),
+                    ),
+
+                    pw.Text(
+                      "توقيع الاعتماد: ............",
+                      style: pw.TextStyle(font: ttf),
+                    ),
                   ],
                 ),
 
@@ -135,7 +180,11 @@ class FinalReportPdf {
                   pw.Center(
                     child: pw.Text(
                       footerText,
-                      style: const pw.TextStyle(fontSize: 10),
+                      textDirection: pw.TextDirection.rtl,
+                      style: pw.TextStyle(
+                        font: ttf,
+                        fontSize: 10,
+                      ),
                     ),
                   ),
                 ],
@@ -146,9 +195,9 @@ class FinalReportPdf {
       ),
     );
 
-    /// =========================
-    /// حفظ وفتح الملف
-    /// =========================
+    // =========================
+    // حفظ وفتح الملف
+    // =========================
     final output = await getTemporaryDirectory();
     final file = File("${output.path}/final_report.pdf");
 
@@ -160,10 +209,3 @@ class FinalReportPdf {
     );
   }
 }
-
-
-
-
-
-
-
