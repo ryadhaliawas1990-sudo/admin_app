@@ -16,42 +16,54 @@ class DBHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2, // 🔴 مهم: رفع النسخة
       onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE timeline (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            number TEXT,
-            name TEXT,
-            rank TEXT,
-            unit TEXT,
-            status TEXT,
-            month TEXT,
-            year TEXT
-          )
-        ''');
+        await _createTables(db);
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        await db.execute("DROP TABLE IF EXISTS timeline");
+        await _createTables(db);
       },
     );
   }
 
+  static Future<void> _createTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE timeline (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        number TEXT,
+        name TEXT,
+        rank TEXT,
+        unit TEXT,
+        status TEXT,
+        month TEXT,
+        year TEXT
+      )
+    ''');
+  }
+
   // =========================
-  // INSERT
+  // INSERT (مقوى ضد null)
   // =========================
   static Future<int> insertTimeline(Map<String, dynamic> data) async {
     final db = await database;
 
     return await db.insert(
       'timeline',
-      data,
+      {
+        "number": (data["number"] ?? "").toString(),
+        "name": (data["name"] ?? "").toString(),
+        "rank": (data["rank"] ?? "").toString(),
+        "unit": (data["unit"] ?? "").toString(),
+        "status": (data["status"] ?? "").toString(),
+        "month": (data["month"] ?? "").toString(),
+        "year": (data["year"] ?? "").toString(),
+      },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  // =========================
-  // UPDATE
-  // =========================
-  static Future<int> updateTimeline(
-      int id, Map<String, dynamic> data) async {
+  static Future<int> updateTimeline(int id, Map<String, dynamic> data) async {
     final db = await database;
 
     return await db.update(
@@ -62,27 +74,17 @@ class DBHelper {
     );
   }
 
-  // =========================
-  // GET PERSON
-  // =========================
-  static Future<List<Map<String, dynamic>>> getPersonTimeline(
-      String number) async {
+  static Future<List<Map<String, dynamic>>> getPersonTimeline(String number) async {
     final db = await database;
 
     return await db.query(
       'timeline',
       where: 'number = ?',
       whereArgs: [number],
-      orderBy: '''
-        CAST(year AS INTEGER) DESC,
-        CAST(month AS INTEGER) DESC
-      ''',
+      orderBy: 'CAST(year AS INTEGER) DESC, CAST(month AS INTEGER) DESC',
     );
   }
 
-  // =========================
-  // DELETE MONTH (أساسي)
-  // =========================
   static Future<int> deleteMonth(String month, String year) async {
     final db = await database;
 
@@ -93,17 +95,10 @@ class DBHelper {
     );
   }
 
-  // =========================
-  // ALIAS (حل أخطاء المشروع)
-  // =========================
-  static Future<int> deleteImportedMonth(
-      String month, String year) async {
+  static Future<int> deleteImportedMonth(String month, String year) async {
     return deleteMonth(month, year);
   }
 
-  // =========================
-  // GET MONTHS
-  // =========================
   static Future<List<Map<String, dynamic>>> getImportedMonths() async {
     final db = await database;
 
@@ -111,29 +106,19 @@ class DBHelper {
       SELECT month, year, COUNT(*) as total
       FROM timeline
       GROUP BY month, year
-      ORDER BY CAST(year AS INTEGER) DESC,
-               CAST(month AS INTEGER) DESC
+      ORDER BY CAST(year AS INTEGER) DESC, CAST(month AS INTEGER) DESC
     ''');
   }
 
-  // =========================
-  // GET ALL
-  // =========================
   static Future<List<Map<String, dynamic>>> getAllTimeline() async {
     final db = await database;
 
     return await db.query(
       'timeline',
-      orderBy: '''
-        CAST(year AS INTEGER) DESC,
-        CAST(month AS INTEGER) DESC
-      ''',
+      orderBy: 'CAST(year AS INTEGER) DESC, CAST(month AS INTEGER) DESC',
     );
   }
 
-  // =========================
-  // DELETE SINGLE
-  // =========================
   static Future<int> deleteTimeline(int id) async {
     final db = await database;
 
@@ -144,9 +129,6 @@ class DBHelper {
     );
   }
 
-  // =========================
-  // CLEAR ALL
-  // =========================
   static Future<void> clearDatabase() async {
     final db = await database;
     await db.delete('timeline');

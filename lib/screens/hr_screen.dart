@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
-
 import 'package:excel/excel.dart';
 
 import '../db/db_helper.dart';
@@ -45,6 +44,7 @@ class _HrScreenState extends State<HrScreen> {
           padding: const EdgeInsets.all(16),
           child: ListView(
             children: [
+
               _buildSectionTitle("📥 استيراد كشوفات الأفراد"),
 
               Card(
@@ -53,8 +53,10 @@ class _HrScreenState extends State<HrScreen> {
                   padding: const EdgeInsets.all(12),
                   child: Column(
                     children: [
+
                       Row(
                         children: [
+
                           Expanded(
                             child: DropdownButtonFormField<String>(
                               value: importYear,
@@ -73,7 +75,9 @@ class _HrScreenState extends State<HrScreen> {
                               },
                             ),
                           ),
+
                           const SizedBox(width: 10),
+
                           Expanded(
                             child: DropdownButtonFormField<String>(
                               value: importMonth,
@@ -195,7 +199,6 @@ class _HrScreenState extends State<HrScreen> {
   // =========================
   // IMPORT
   // =========================
-
   Future<void> _pickAndImportExcel() async {
     try {
       FilePickerResult? result =
@@ -248,7 +251,6 @@ class _HrScreenState extends State<HrScreen> {
   // =========================
   // SEARCH
   // =========================
-
   Future<void> searchPeople(String value) async {
     final db = await DBHelper.database;
 
@@ -274,9 +276,8 @@ class _HrScreenState extends State<HrScreen> {
   }
 
   // =========================
-  // REPORT (EXCEL)
+  // EXPORT EXCEL (FIXED)
   // =========================
-
   Future<void> _generateFilteredReport() async {
     final db = await DBHelper.database;
 
@@ -311,7 +312,6 @@ class _HrScreenState extends State<HrScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("لا توجد نتائج")),
       );
-
       return;
     }
 
@@ -328,7 +328,7 @@ class _HrScreenState extends State<HrScreen> {
       TextCellValue("السنة"),
     ]);
 
-    for (var e in records) {
+    for (final e in records) {
       sheet.appendRow([
         TextCellValue((e['number'] ?? '').toString()),
         TextCellValue((e['rank'] ?? '').toString()),
