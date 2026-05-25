@@ -1,9 +1,5 @@
 import 'dart:io';
-import 'package:flutter/services.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:path_provider/path_provider.dart';
 
 class FinalReportPdf {
 
@@ -14,28 +10,12 @@ class FinalReportPdf {
     String footerText = '',
   }) async {
 
-    final pdf = pw.Document();
-
-    // =========================
-    // تحميل الخط العربي
-    // =========================
-    final fontData = await rootBundle.load(
-      "assets/fonts/Cairo-Regular.ttf",
-    );
-
-    final ttf = pw.Font.ttf(fontData);
-
     final person = people.isNotEmpty ? people.first : {};
 
     final String pNumber = person["number"]?.toString() ?? "-";
     final String pName = person["name"]?.toString() ?? "-";
     final String pRank = person["rank"]?.toString() ?? "-";
     final String pUnit = person["unit"]?.toString() ?? "-";
-
-    // =========================
-    // تجهيز أعمدة الشهور
-    // =========================
-    final headers = months;
 
     // =========================
     // بناء صف الحالات
@@ -50,162 +30,96 @@ class FinalReportPdf {
         }
       }
 
-      return statusValue;
-    }).toList();
+      return "<td>$statusValue</td>";
+    }).join();
+
+    final headers = months.map((m) => "<th>$m</th>").join();
 
     // =========================
-    // إنشاء الصفحة
+    // HTML كامل
     // =========================
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        build: (context) {
+    final html = """
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    font-family: Arial;
+    direction: rtl;
+    text-align: right;
+    padding: 20px;
+  }
 
-          return pw.Directionality(
-            textDirection: pw.TextDirection.rtl,
+  h2 {
+    text-align: center;
+  }
 
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
 
-                // =====================
-                // العنوان
-                // =====================
-                pw.Center(
-                  child: pw.Text(
-                    "تقرير سجل الحالة الدوري",
-                    textDirection: pw.TextDirection.rtl,
-                    style: pw.TextStyle(
-                      font: ttf,
-                      fontSize: 20,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-                ),
+  th, td {
+    border: 1px solid #000;
+    padding: 8px;
+    text-align: center;
+  }
 
-                if (headerText.isNotEmpty)
-                  pw.Center(
-                    child: pw.Text(
-                      headerText,
-                      textDirection: pw.TextDirection.rtl,
-                      style: pw.TextStyle(
-                        font: ttf,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
+  .box {
+    border: 1px solid #000;
+    padding: 10px;
+    margin-top: 15px;
+  }
+</style>
+</head>
 
-                pw.SizedBox(height: 20),
+<body>
 
-                // =====================
-                // بيانات الفرد
-                // =====================
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(10),
-                  decoration: pw.BoxDecoration(
-                    border: pw.Border.all(),
-                  ),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
+<h2>تقرير سجل الحالة الدوري</h2>
 
-                      pw.Text(
-                        "الرقم العسكري: $pNumber",
-                        style: pw.TextStyle(font: ttf),
-                      ),
+${headerText.isNotEmpty ? "<h4 style='text-align:center;'>$headerText</h4>" : ""}
 
-                      pw.Text(
-                        "الرتبة العسكرية: $pRank",
-                        style: pw.TextStyle(font: ttf),
-                      ),
+<div class="box">
+  <p>الرقم العسكري: $pNumber</p>
+  <p>الرتبة العسكرية: $pRank</p>
+  <p>الاسم الكامل: $pName</p>
+  <p>الوحدة / التشكيل: $pUnit</p>
+</div>
 
-                      pw.Text(
-                        "الاسم الكامل: $pName",
-                        style: pw.TextStyle(font: ttf),
-                      ),
+<table>
+  <tr>
+    $headers
+  </tr>
+  <tr>
+    $statusRow
+  </tr>
+</table>
 
-                      pw.Text(
-                        "الوحدة / التشكيل: $pUnit",
-                        style: pw.TextStyle(font: ttf),
-                      ),
-                    ],
-                  ),
-                ),
+<br><br>
 
-                pw.SizedBox(height: 20),
+<div style="display:flex; justify-content:space-between;">
+  <p>توقيع مدير القسم: ............</p>
+  <p>توقيع الاعتماد: ............</p>
+</div>
 
-                // =====================
-                // جدول الشهور والحالات
-                // =====================
-                pw.TableHelper.fromTextArray(
-                  headers: headers,
-                  data: [statusRow],
-                  border: pw.TableBorder.all(width: 0.5),
+${footerText.isNotEmpty ? "<p style='text-align:center;'>$footerText</p>" : ""}
 
-                  headerStyle: pw.TextStyle(
-                    font: ttf,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-
-                  cellStyle: pw.TextStyle(
-                    font: ttf,
-                  ),
-
-                  headerAlignment: pw.Alignment.center,
-                  cellAlignment: pw.Alignment.center,
-                ),
-
-                pw.SizedBox(height: 30),
-
-                // =====================
-                // التوقيعات
-                // =====================
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text(
-                      "توقيع مدير القسم: ............",
-                      style: pw.TextStyle(font: ttf),
-                    ),
-
-                    pw.Text(
-                      "توقيع الاعتماد: ............",
-                      style: pw.TextStyle(font: ttf),
-                    ),
-                  ],
-                ),
-
-                if (footerText.isNotEmpty) ...[
-                  pw.SizedBox(height: 40),
-                  pw.Center(
-                    child: pw.Text(
-                      footerText,
-                      textDirection: pw.TextDirection.rtl,
-                      style: pw.TextStyle(
-                        font: ttf,
-                        fontSize: 10,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          );
-        },
-      ),
-    );
+</body>
+</html>
+""";
 
     // =========================
-    // حفظ وفتح الملف
+    // توليد PDF من HTML
     // =========================
-    final output = await getTemporaryDirectory();
-    final file = File("${output.path}/final_report.pdf");
-
-    await file.writeAsBytes(await pdf.save());
-
     await Printing.layoutPdf(
-      onLayout: (format) async => pdf.save(),
-      name: 'final_report_$pNumber',
+      onLayout: (format) async {
+        return await Printing.convertHtml(
+          format: format,
+          html: html,
+        );
+      },
     );
   }
 }
