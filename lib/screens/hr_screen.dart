@@ -458,40 +458,20 @@ class _HrScreenState extends State<HrScreen> {
     // STYLE
     // =========================
 
-    final border = Border(
-      left: BorderSide(
-        borderStyle: BorderStyle.Thin,
-      ),
-      right: BorderSide(
-        borderStyle: BorderStyle.Thin,
-      ),
-      top: BorderSide(
-        borderStyle: BorderStyle.Thin,
-      ),
-      bottom: BorderSide(
-        borderStyle: BorderStyle.Thin,
-      ),
-    );
-
     final headerStyle = CellStyle(
       bold: true,
       horizontalAlign: HorizontalAlign.Center,
       verticalAlign: VerticalAlign.Center,
-      border: border,
-      backgroundColorHex:
-          ExcelColor.blueGrey50,
+      backgroundColorHex: "#D9EAD3",
     );
 
     final cellStyle = CellStyle(
       horizontalAlign: HorizontalAlign.Center,
       verticalAlign: VerticalAlign.Center,
-      border: border,
     );
 
     for (int r = 0; r <= grouped.length; r++) {
-      for (int c = 0;
-          c < header.length;
-          c++) {
+      for (int c = 0; c < header.length; c++) {
         final cell = sheet.cell(
           CellIndex.indexByColumnRow(
             columnIndex: c,
