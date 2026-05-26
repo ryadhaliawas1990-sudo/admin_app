@@ -241,8 +241,7 @@ class _HrScreenState extends State<HrScreen> {
       for (int i = 1; i < sheet.rows.length; i++) {
         final row = sheet.rows[i];
 
-        // ترتيب ملفك:
-        // A = متسلسل (نتجاهله)
+        // A = متسلسل
         // B = الرقم العسكري
         // C = الرتبة
         // D = الاسم
@@ -274,9 +273,6 @@ class _HrScreenState extends State<HrScreen> {
           "year": importYear,
         });
       }
-
-      // تنظيف البيانات القديمة مرة واحدة
-      await DBHelper.clearDatabase();
 
       await ExcelToDbService.import(
         rows,
@@ -356,8 +352,7 @@ class _HrScreenState extends State<HrScreen> {
         '%$search%',
       ],
       orderBy: '''
-        CAST(year AS INTEGER),
-        CAST(month AS INTEGER)
+        CAST(month AS INTEGER) ASC
       ''',
     );
 
@@ -377,66 +372,141 @@ class _HrScreenState extends State<HrScreen> {
 
     final sheet = excel['HR Report'];
 
+    // =========================
+    // تجميع حسب الشخص
+    // =========================
 
-    // معلومات الفرد
-    final first = records.first;
+    Map<String, Map<String, dynamic>> grouped = {};
 
-    sheet.appendRow([
-      TextCellValue("الرقم العسكري"),
-      TextCellValue(
-        (first['number'] ?? '').toString(),
-      ),
-    ]);
+    List<String> allMonths = [];
 
-    sheet.appendRow([
-      TextCellValue("الرتبة"),
-      TextCellValue(
-        (first['rank'] ?? '').toString(),
-      ),
-    ]);
+    for (final row in records) {
+      final number =
+          (row['number'] ?? '').toString();
 
-    sheet.appendRow([
-      TextCellValue("الاسم"),
-      TextCellValue(
-        (first['name'] ?? '').toString(),
-      ),
-    ]);
+      final month =
+          "${row['month']}/${row['year']}";
 
-    sheet.appendRow([
-      TextCellValue("الوحدة"),
-      TextCellValue(
-        (first['unit'] ?? '').toString(),
-      ),
-    ]);
+      if (!allMonths.contains(month)) {
+        allMonths.add(month);
+      }
 
-    sheet.appendRow([]);
+      if (!grouped.containsKey(number)) {
+        grouped[number] = {
+          "number": row['number'],
+          "rank": row['rank'],
+          "name": row['name'],
+          "unit": row['unit'],
+          "months": {},
+        };
+      }
 
-    // صف الأشهر
-    List<CellValue> monthsRow = [
-      TextCellValue("الأشهر")
-    ];
-
-    // صف الحالات
-    List<CellValue> statusRow = [
-      TextCellValue("الحالة")
-    ];
-
-    for (final e in records) {
-      monthsRow.add(
-        TextCellValue(
-          "${e['month']}/${e['year']}",
-        ),
-      );
-
-      statusRow.add(
-        TextCellValue(
-          (e['status'] ?? '').toString(),
-        ),
-      );
+      grouped[number]!["months"][month] =
+          row['status'];
     }
 
-    sheet.appendRow(monthsRow);
-    sheet.appendRow(statusRow);
+    // =========================
+    // HEADER
+    // =========================
+
+    List<CellValue> header = [
+      TextCellValue("الرقم العسكري"),
+      TextCellValue("الرتبة"),
+      TextCellValue("الاسم"),
+      TextCellValue("الوحدة"),
+    ];
+
+    for (final m in allMonths) {
+      header.add(TextCellValue(m));
+    }
+
+    sheet.appendRow(header);
+
+    // =========================
+    // DATA
+    // =========================
+
+    for (final person in grouped.values) {
+      List<CellValue> row = [
+        TextCellValue(
+          (person['number'] ?? '').toString(),
+        ),
+        TextCellValue(
+          (person['rank'] ?? '').toString(),
+        ),
+        TextCellValue(
+          (person['name'] ?? '').toString(),
+        ),
+        TextCellValue(
+          (person['unit'] ?? '').toString(),
+        ),
+      ];
+
+      for (final m in allMonths) {
+        row.add(
+          TextCellValue(
+            (person['months'][m] ?? '')
+                .toString(),
+          ),
+        );
+      }
+
+      sheet.appendRow(row);
+    }
+
+    // =========================
+    // STYLE
+    // =========================
+
+    final border = Border(
+      left: BorderSide(
+        borderStyle: BorderStyle.Thin,
+      ),
+      right: BorderSide(
+        borderStyle: BorderStyle.Thin,
+      ),
+      top: BorderSide(
+        borderStyle: BorderStyle.Thin,
+      ),
+      bottom: BorderSide(
+        borderStyle: BorderStyle.Thin,
+      ),
+    );
+
+    final headerStyle = CellStyle(
+      bold: true,
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+      border: border,
+      backgroundColorHex:
+          ExcelColor.blueGrey50,
+    );
+
+    final cellStyle = CellStyle(
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+      border: border,
+    );
+
+    for (int r = 0; r <= grouped.length; r++) {
+      for (int c = 0;
+          c < header.length;
+          c++) {
+        final cell = sheet.cell(
+          CellIndex.indexByColumnRow(
+            columnIndex: c,
+            rowIndex: r,
+          ),
+        );
+
+        cell.cellStyle =
+            r == 0 ? headerStyle : cellStyle;
+      }
+    }
+
+    // =========================
+    // حفظ
+    // =========================
 
     final dir =
         await getApplicationDocumentsDirectory();
