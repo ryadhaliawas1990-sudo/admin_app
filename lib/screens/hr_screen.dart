@@ -241,31 +241,42 @@ class _HrScreenState extends State<HrScreen> {
       for (int i = 1; i < sheet.rows.length; i++) {
         final row = sheet.rows[i];
 
-        rows.add({
-          "number": row.isNotEmpty
-              ? row[0]?.value?.toString() ?? ""
-              : "",
+        // ترتيب ملفك:
+        // A = متسلسل (نتجاهله)
+        // B = الرقم العسكري
+        // C = الرتبة
+        // D = الاسم
+        // E = الوحدة
+        // F = الحالة
 
-          "rank": row.length > 1
+        rows.add({
+          "number": row.length > 1
               ? row[1]?.value?.toString() ?? ""
               : "",
 
-          "name": row.length > 2
+          "rank": row.length > 2
               ? row[2]?.value?.toString() ?? ""
               : "",
 
-          "unit": row.length > 3
+          "name": row.length > 3
               ? row[3]?.value?.toString() ?? ""
               : "",
 
-          "status": row.length > 4
+          "unit": row.length > 4
               ? row[4]?.value?.toString() ?? ""
+              : "",
+
+          "status": row.length > 5
+              ? row[5]?.value?.toString() ?? ""
               : "",
 
           "month": importMonth,
           "year": importYear,
         });
       }
+
+      // تنظيف البيانات القديمة مرة واحدة
+      await DBHelper.clearDatabase();
 
       await ExcelToDbService.import(
         rows,
@@ -344,7 +355,10 @@ class _HrScreenState extends State<HrScreen> {
         '%$search%',
         '%$search%',
       ],
-      limit: 300,
+      orderBy: '''
+        CAST(year AS INTEGER),
+        CAST(month AS INTEGER)
+      ''',
     );
 
     if (records.isEmpty) {
@@ -363,34 +377,68 @@ class _HrScreenState extends State<HrScreen> {
 
     final sheet = excel['HR Report'];
 
+    // اتجاه من اليمين لليسار
+    sheet.setColWidth(0, 25);
+
+    // معلومات الفرد
+    final first = records.first;
+
     sheet.appendRow([
-      TextCellValue("الرقم"),
-      TextCellValue("الرتبة"),
-      TextCellValue("الاسم"),
-      TextCellValue("الوحدة"),
-      TextCellValue("الحالة"),
-      TextCellValue("الشهر"),
-      TextCellValue("السنة"),
+      TextCellValue("الرقم العسكري"),
+      TextCellValue(
+        (first['number'] ?? '').toString(),
+      ),
     ]);
 
+    sheet.appendRow([
+      TextCellValue("الرتبة"),
+      TextCellValue(
+        (first['rank'] ?? '').toString(),
+      ),
+    ]);
+
+    sheet.appendRow([
+      TextCellValue("الاسم"),
+      TextCellValue(
+        (first['name'] ?? '').toString(),
+      ),
+    ]);
+
+    sheet.appendRow([
+      TextCellValue("الوحدة"),
+      TextCellValue(
+        (first['unit'] ?? '').toString(),
+      ),
+    ]);
+
+    sheet.appendRow([]);
+
+    // صف الأشهر
+    List<CellValue> monthsRow = [
+      TextCellValue("الأشهر")
+    ];
+
+    // صف الحالات
+    List<CellValue> statusRow = [
+      TextCellValue("الحالة")
+    ];
+
     for (final e in records) {
-      sheet.appendRow([
+      monthsRow.add(
         TextCellValue(
-            (e['number'] ?? '').toString()),
+          "${e['month']}/${e['year']}",
+        ),
+      );
+
+      statusRow.add(
         TextCellValue(
-            (e['rank'] ?? '').toString()),
-        TextCellValue(
-            (e['name'] ?? '').toString()),
-        TextCellValue(
-            (e['unit'] ?? '').toString()),
-        TextCellValue(
-            (e['status'] ?? '').toString()),
-        TextCellValue(
-            (e['month'] ?? '').toString()),
-        TextCellValue(
-            (e['year'] ?? '').toString()),
-      ]);
+          (e['status'] ?? '').toString(),
+        ),
+      );
     }
+
+    sheet.appendRow(monthsRow);
+    sheet.appendRow(statusRow);
 
     final dir =
         await getApplicationDocumentsDirectory();
