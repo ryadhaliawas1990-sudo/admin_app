@@ -377,8 +377,6 @@ class _HrScreenState extends State<HrScreen> {
 
     final sheet = excel['HR Report'];
 
-    // اتجاه من اليمين لليسار
-    sheet.setColWidth(0, 25);
 
     // معلومات الفرد
     final first = records.first;
