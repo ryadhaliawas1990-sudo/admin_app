@@ -462,7 +462,6 @@ class _HrScreenState extends State<HrScreen> {
       bold: true,
       horizontalAlign: HorizontalAlign.Center,
       verticalAlign: VerticalAlign.Center,
-      backgroundColorHex: "#D9EAD3",
     );
 
     final cellStyle = CellStyle(
