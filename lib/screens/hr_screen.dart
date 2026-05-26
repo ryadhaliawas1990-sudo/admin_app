@@ -21,27 +21,22 @@ class _HrScreenState extends State<HrScreen> {
   String importYear = "2026";
   String importMonth = "1";
 
+  // ✅ NEW: range filter
+  String fromMonth = "1";
+  String toMonth = "12";
+
   bool isImporting = false;
 
-  final TextEditingController searchController =
-      TextEditingController();
-
+  final TextEditingController searchController = TextEditingController();
   List<Map<String, dynamic>> searchResults = [];
 
   final List<String> years = [
-    "2019",
-    "2020",
-    "2021",
-    "2022",
-    "2023",
-    "2024",
-    "2025",
-    "2026",
-    "2027",
-    "2028",
-    "2029",
-    "2030"
+    "2019","2020","2021","2022","2023",
+    "2024","2025","2026","2027","2028",
+    "2029","2030"
   ];
+
+  final List<String> months = List.generate(12, (i) => (i + 1).toString());
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +51,7 @@ class _HrScreenState extends State<HrScreen> {
           padding: const EdgeInsets.all(16),
           child: ListView(
             children: [
+
               _buildSectionTitle("📥 استيراد كشوفات الأفراد"),
 
               Card(
@@ -73,20 +69,13 @@ class _HrScreenState extends State<HrScreen> {
                                 labelText: "السنة",
                                 border: OutlineInputBorder(),
                               ),
-                              items: years.map((y) {
-                                return DropdownMenuItem(
-                                  value: y,
-                                  child: Text(y),
-                                );
-                              }).toList(),
-                              onChanged: (v) {
-                                setState(() => importYear = v!);
-                              },
+                              items: years.map((y) =>
+                                DropdownMenuItem(value: y, child: Text(y))
+                              ).toList(),
+                              onChanged: (v) => setState(() => importYear = v!),
                             ),
                           ),
-
                           const SizedBox(width: 10),
-
                           Expanded(
                             child: DropdownButtonFormField<String>(
                               value: importMonth,
@@ -94,25 +83,15 @@ class _HrScreenState extends State<HrScreen> {
                                 labelText: "الشهر",
                                 border: OutlineInputBorder(),
                               ),
-                              items: List.generate(
-                                12,
-                                (i) => (i + 1).toString(),
-                              ).map((m) {
-                                return DropdownMenuItem(
-                                  value: m,
-                                  child: Text("شهر $m"),
-                                );
-                              }).toList(),
-                              onChanged: (v) {
-                                setState(() => importMonth = v!);
-                              },
+                              items: months.map((m) =>
+                                DropdownMenuItem(value: m, child: Text("شهر $m"))
+                              ).toList(),
+                              onChanged: (v) => setState(() => importMonth = v!),
                             ),
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 15),
-
                       isImporting
                           ? const CircularProgressIndicator()
                           : ElevatedButton.icon(
@@ -135,15 +114,45 @@ class _HrScreenState extends State<HrScreen> {
                   labelText: "السنة",
                   border: OutlineInputBorder(),
                 ),
-                items: years.map((y) {
-                  return DropdownMenuItem(
-                    value: y,
-                    child: Text(y),
-                  );
-                }).toList(),
-                onChanged: (v) {
-                  setState(() => selectedYear = v!);
-                },
+                items: years.map((y) =>
+                  DropdownMenuItem(value: y, child: Text(y))
+                ).toList(),
+                onChanged: (v) => setState(() => selectedYear = v!),
+              ),
+
+              const SizedBox(height: 10),
+
+              // ✅ NEW: month range
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: fromMonth,
+                      decoration: const InputDecoration(
+                        labelText: "من شهر",
+                        border: OutlineInputBorder(),
+                      ),
+                      items: months.map((m) =>
+                        DropdownMenuItem(value: m, child: Text(m))
+                      ).toList(),
+                      onChanged: (v) => setState(() => fromMonth = v!),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: toMonth,
+                      decoration: const InputDecoration(
+                        labelText: "إلى شهر",
+                        border: OutlineInputBorder(),
+                      ),
+                      items: months.map((m) =>
+                        DropdownMenuItem(value: m, child: Text(m))
+                      ).toList(),
+                      onChanged: (v) => setState(() => toMonth = v!),
+                    ),
+                  ),
+                ],
               ),
 
               const SizedBox(height: 15),
@@ -157,30 +166,6 @@ class _HrScreenState extends State<HrScreen> {
                 ),
                 onChanged: searchPeople,
               ),
-
-              const SizedBox(height: 10),
-
-              if (searchResults.isNotEmpty)
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics:
-                      const NeverScrollableScrollPhysics(),
-                  itemCount: searchResults.length,
-                  itemBuilder: (context, i) {
-                    final item = searchResults[i];
-
-                    return Card(
-                      child: ListTile(
-                        title: Text(
-                          "${item['number']} - ${item['rank']} - ${item['name']}",
-                        ),
-                        subtitle: Text(
-                          "الوحدة: ${item['unit']} | الحالة: ${item['status']}",
-                        ),
-                      ),
-                    );
-                  },
-                ),
 
               const SizedBox(height: 20),
 
@@ -210,13 +195,11 @@ class _HrScreenState extends State<HrScreen> {
   }
 
   // =========================
-  // IMPORT
+  // IMPORT (بدون تغيير)
   // =========================
-
   Future<void> _pickAndImportExcel() async {
     try {
-      FilePickerResult? result =
-          await FilePicker.platform.pickFiles(
+      final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['xlsx', 'xls'],
       );
@@ -226,13 +209,10 @@ class _HrScreenState extends State<HrScreen> {
       setState(() => isImporting = true);
 
       final file = File(result.files.single.path!);
-
       final bytes = await file.readAsBytes();
 
       final excel = Excel.decodeBytes(bytes);
-
-      final sheet =
-          excel.tables[excel.tables.keys.first];
+      final sheet = excel.tables[excel.tables.keys.first];
 
       if (sheet == null) return;
 
@@ -241,51 +221,23 @@ class _HrScreenState extends State<HrScreen> {
       for (int i = 1; i < sheet.rows.length; i++) {
         final row = sheet.rows[i];
 
-        // A = متسلسل
-        // B = الرقم العسكري
-        // C = الرتبة
-        // D = الاسم
-        // E = الوحدة
-        // F = الحالة
-
         rows.add({
-          "number": row.length > 1
-              ? row[1]?.value?.toString() ?? ""
-              : "",
-
-          "rank": row.length > 2
-              ? row[2]?.value?.toString() ?? ""
-              : "",
-
-          "name": row.length > 3
-              ? row[3]?.value?.toString() ?? ""
-              : "",
-
-          "unit": row.length > 4
-              ? row[4]?.value?.toString() ?? ""
-              : "",
-
-          "status": row.length > 5
-              ? row[5]?.value?.toString() ?? ""
-              : "",
-
+          "number": row.length > 1 ? row[1]?.value?.toString() ?? "" : "",
+          "rank": row.length > 2 ? row[2]?.value?.toString() ?? "" : "",
+          "name": row.length > 3 ? row[3]?.value?.toString() ?? "" : "",
+          "unit": row.length > 4 ? row[4]?.value?.toString() ?? "" : "",
+          "status": row.length > 5 ? row[5]?.value?.toString() ?? "" : "",
           "month": importMonth,
           "year": importYear,
         });
       }
 
-      await ExcelToDbService.import(
-        rows,
-        importMonth,
-        importYear,
-      );
+      await ExcelToDbService.import(rows, importMonth, importYear);
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("تم الاستيراد بنجاح"),
-        ),
+        const SnackBar(content: Text("تم الاستيراد بنجاح")),
       );
     } finally {
       if (mounted) {
@@ -295,9 +247,8 @@ class _HrScreenState extends State<HrScreen> {
   }
 
   // =========================
-  // SEARCH
+  // SEARCH (بدون تغيير)
   // =========================
-
   Future<void> searchPeople(String value) async {
     final db = await DBHelper.database;
 
@@ -323,18 +274,17 @@ class _HrScreenState extends State<HrScreen> {
   }
 
   // =========================
-  // EXPORT EXCEL
+  // REPORT (إعادة بناء كاملة)
   // =========================
-
   Future<void> _generateFilteredReport() async {
     final db = await DBHelper.database;
-
     final search = searchController.text.trim();
 
     final records = await db.query(
       'timeline',
       where: '''
         year = ?
+        AND CAST(month AS INTEGER) BETWEEN ? AND ?
         AND (
           number LIKE ?
           OR name LIKE ?
@@ -345,162 +295,82 @@ class _HrScreenState extends State<HrScreen> {
       ''',
       whereArgs: [
         selectedYear,
+        fromMonth,
+        toMonth,
         '%$search%',
         '%$search%',
         '%$search%',
         '%$search%',
         '%$search%',
       ],
-      orderBy: '''
-        CAST(month AS INTEGER) ASC
-      ''',
+      orderBy: 'CAST(month AS INTEGER) ASC',
     );
 
     if (records.isEmpty) {
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("لا توجد نتائج"),
-        ),
+        const SnackBar(content: Text("لا توجد نتائج")),
       );
-
       return;
     }
 
     final excel = Excel.createExcel();
-
     final sheet = excel['HR Report'];
 
-    // =========================
-    // تجميع حسب الشخص
-    // =========================
-
     Map<String, Map<String, dynamic>> grouped = {};
+    List<String> months = [];
 
-    List<String> allMonths = [];
+    for (final r in records) {
+      final key = r['number'].toString();
+      final m = r['month'].toString();
 
-    for (final row in records) {
-      final number =
-          (row['number'] ?? '').toString();
+      if (!months.contains(m)) months.add(m);
 
-      final month =
-          "${row['month']}/${row['year']}";
+      grouped.putIfAbsent(key, () => {
+        "number": r['number'],
+        "rank": r['rank'],
+        "name": r['name'],
+        "unit": r['unit'],
+        "months": {}
+      });
 
-      if (!allMonths.contains(month)) {
-        allMonths.add(month);
-      }
-
-      if (!grouped.containsKey(number)) {
-        grouped[number] = {
-          "number": row['number'],
-          "rank": row['rank'],
-          "name": row['name'],
-          "unit": row['unit'],
-          "months": {},
-        };
-      }
-
-      grouped[number]!["months"][month] =
-          row['status'];
+      grouped[key]!["months"][m] = r['status'];
     }
 
-    // =========================
-    // HEADER
-    // =========================
+    months.sort((a, b) => int.parse(a).compareTo(int.parse(b)));
 
     List<CellValue> header = [
-      TextCellValue("الرقم العسكري"),
+      TextCellValue("الرقم"),
       TextCellValue("الرتبة"),
       TextCellValue("الاسم"),
       TextCellValue("الوحدة"),
+      ...months.map((m) => TextCellValue("شهر $m"))
     ];
-
-    for (final m in allMonths) {
-      header.add(TextCellValue(m));
-    }
 
     sheet.appendRow(header);
 
-    // =========================
-    // DATA
-    // =========================
-
-    for (final person in grouped.values) {
+    for (final p in grouped.values) {
       List<CellValue> row = [
-        TextCellValue(
-          (person['number'] ?? '').toString(),
-        ),
-        TextCellValue(
-          (person['rank'] ?? '').toString(),
-        ),
-        TextCellValue(
-          (person['name'] ?? '').toString(),
-        ),
-        TextCellValue(
-          (person['unit'] ?? '').toString(),
-        ),
+        TextCellValue(p['number'].toString()),
+        TextCellValue(p['rank'].toString()),
+        TextCellValue(p['name'].toString()),
+        TextCellValue(p['unit'].toString()),
       ];
 
-      for (final m in allMonths) {
-        row.add(
-          TextCellValue(
-            (person['months'][m] ?? '')
-                .toString(),
-          ),
-        );
+      for (final m in months) {
+        row.add(TextCellValue((p['months'][m] ?? '').toString()));
       }
 
       sheet.appendRow(row);
     }
 
-    // =========================
-    // STYLE
-    // =========================
-
-    final headerStyle = CellStyle(
-      bold: true,
-      horizontalAlign: HorizontalAlign.Center,
-      verticalAlign: VerticalAlign.Center,
-    );
-
-    final cellStyle = CellStyle(
-      horizontalAlign: HorizontalAlign.Center,
-      verticalAlign: VerticalAlign.Center,
-    );
-
-    for (int r = 0; r <= grouped.length; r++) {
-      for (int c = 0; c < header.length; c++) {
-        final cell = sheet.cell(
-          CellIndex.indexByColumnRow(
-            columnIndex: c,
-            rowIndex: r,
-          ),
-        );
-
-        cell.cellStyle =
-            r == 0 ? headerStyle : cellStyle;
-      }
-    }
-
-    // =========================
-    // حفظ
-    // =========================
-
-    final dir =
-        await getApplicationDocumentsDirectory();
-
-    final file =
-        File("${dir.path}/hr_report.xlsx");
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File("${dir.path}/hr_report.xlsx");
 
     final bytes = excel.encode();
-
-    if (bytes == null) {
-      throw Exception("فشل إنشاء Excel");
-    }
+    if (bytes == null) throw Exception("فشل إنشاء Excel");
 
     await file.writeAsBytes(bytes);
-
     await OpenFile.open(file.path);
   }
 }
