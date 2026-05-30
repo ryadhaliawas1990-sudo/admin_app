@@ -1,178 +1,50 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:excel/excel.dart';
-
 import '../db/db_helper.dart';
 import '../services/excel_to_db_service.dart';
 
 class HrScreen extends StatefulWidget {
   const HrScreen({super.key});
-
   @override
   State<HrScreen> createState() => _HrScreenState();
 }
 
 class _HrScreenState extends State<HrScreen> {
-  String selectedYear = "2026";
   String importYear = "2026";
   String importMonth = "1";
-
-  // ✅ NEW: range filter
+  String fromYear = "2026";
+  String toYear = "2026";
   String fromMonth = "1";
   String toMonth = "12";
-
   bool isImporting = false;
 
   final TextEditingController searchController = TextEditingController();
-  List<Map<String, dynamic>> searchResults = [];
-
-  final List<String> years = [
-    "2019","2020","2021","2022","2023",
-    "2024","2025","2026","2027","2028",
-    "2029","2030"
-  ];
-
+  final List<String> years = List.generate(12, (i) => (2019 + i).toString());
   final List<String> months = List.generate(12, (i) => (i + 1).toString());
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("إدارة الموارد البشرية"),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text("إدارة الموارد البشرية"), centerTitle: true),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: ListView(
             children: [
-
               _buildSectionTitle("📥 استيراد كشوفات الأفراد"),
-
-              Card(
-                color: Colors.blue.shade50,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              value: importYear,
-                              decoration: const InputDecoration(
-                                labelText: "السنة",
-                                border: OutlineInputBorder(),
-                              ),
-                              items: years.map((y) =>
-                                DropdownMenuItem(value: y, child: Text(y))
-                              ).toList(),
-                              onChanged: (v) => setState(() => importYear = v!),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              value: importMonth,
-                              decoration: const InputDecoration(
-                                labelText: "الشهر",
-                                border: OutlineInputBorder(),
-                              ),
-                              items: months.map((m) =>
-                                DropdownMenuItem(value: m, child: Text("شهر $m"))
-                              ).toList(),
-                              onChanged: (v) => setState(() => importMonth = v!),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 15),
-                      isImporting
-                          ? const CircularProgressIndicator()
-                          : ElevatedButton.icon(
-                              onPressed: _pickAndImportExcel,
-                              icon: const Icon(Icons.upload_file),
-                              label: const Text("رفع ملف Excel"),
-                            ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 25),
-
-              _buildSectionTitle("📊 إنشاء تقرير"),
-
-              DropdownButtonFormField<String>(
-                value: selectedYear,
-                decoration: const InputDecoration(
-                  labelText: "السنة",
-                  border: OutlineInputBorder(),
-                ),
-                items: years.map((y) =>
-                  DropdownMenuItem(value: y, child: Text(y))
-                ).toList(),
-                onChanged: (v) => setState(() => selectedYear = v!),
-              ),
-
+              _buildImportCard(),
               const SizedBox(height: 10),
-
-              // ✅ NEW: month range
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: fromMonth,
-                      decoration: const InputDecoration(
-                        labelText: "من شهر",
-                        border: OutlineInputBorder(),
-                      ),
-                      items: months.map((m) =>
-                        DropdownMenuItem(value: m, child: Text(m))
-                      ).toList(),
-                      onChanged: (v) => setState(() => fromMonth = v!),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: toMonth,
-                      decoration: const InputDecoration(
-                        labelText: "إلى شهر",
-                        border: OutlineInputBorder(),
-                      ),
-                      items: months.map((m) =>
-                        DropdownMenuItem(value: m, child: Text(m))
-                      ).toList(),
-                      onChanged: (v) => setState(() => toMonth = v!),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 15),
-
-              TextField(
-                controller: searchController,
-                decoration: const InputDecoration(
-                  labelText: "بحث",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.search),
-                ),
-                onChanged: searchPeople,
-              ),
-
+              _buildImportedMonthsList(),
+              const SizedBox(height: 25),
+              _buildSectionTitle("📊 إنشاء تقرير (كتلي رأسي)"),
+              _buildReportFilters(),
               const SizedBox(height: 20),
-
-              ElevatedButton(
-                onPressed: _generateFilteredReport,
-                child: const Text("إنشاء التقرير (Excel)"),
-              ),
+              ElevatedButton(onPressed: _generateFilteredReport, child: const Text("تصدير التقرير (Excel)")),
             ],
           ),
         ),
@@ -180,197 +52,110 @@ class _HrScreenState extends State<HrScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Colors.indigo,
-        ),
-      ),
+  Widget _buildImportCard() {
+    return Card(color: Colors.blue.shade50, child: Padding(padding: const EdgeInsets.all(12), child: Column(children: [
+      Row(children: [
+        Expanded(child: DropdownButtonFormField<String>(value: importYear, decoration: const InputDecoration(labelText: "السنة"), items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(), onChanged: (v) => setState(() => importYear = v!))),
+        const SizedBox(width: 10),
+        Expanded(child: DropdownButtonFormField<String>(value: importMonth, decoration: const InputDecoration(labelText: "الشهر"), items: months.map((m) => DropdownMenuItem(value: m, child: Text("شهر $m"))).toList(), onChanged: (v) => setState(() => importMonth = v!))),
+      ]),
+      const SizedBox(height: 15),
+      isImporting ? const CircularProgressIndicator() : ElevatedButton.icon(onPressed: _pickAndImportExcel, icon: const Icon(Icons.upload_file), label: const Text("رفع ملف Excel")),
+    ])));
+  }
+
+  Widget _buildImportedMonthsList() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: DBHelper.getImportedMonths(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
+        return Column(children: snapshot.data!.map((m) => ListTile(
+          title: Text("شهر ${m['month']} - ${m['year']} (${m['total']} سجل)"),
+          trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () async {
+            await DBHelper.deleteMonth(m['month'].toString(), m['year'].toString());
+            setState(() {});
+          }),
+        )).toList());
+      },
     );
   }
 
-  // =========================
-  // IMPORT (بدون تغيير)
-  // =========================
+  Widget _buildReportFilters() {
+    return Column(children: [
+      Row(children: [
+        Expanded(child: DropdownButtonFormField<String>(value: fromYear, decoration: const InputDecoration(labelText: "من سنة"), items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(), onChanged: (v) => setState(() => fromYear = v!))),
+        const SizedBox(width: 10),
+        Expanded(child: DropdownButtonFormField<String>(value: toYear, decoration: const InputDecoration(labelText: "إلى سنة"), items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(), onChanged: (v) => setState(() => toYear = v!))),
+      ]),
+      const SizedBox(height: 10),
+      Row(children: [
+        Expanded(child: DropdownButtonFormField<String>(value: fromMonth, decoration: const InputDecoration(labelText: "من شهر"), items: months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(), onChanged: (v) => setState(() => fromMonth = v!))),
+        const SizedBox(width: 10),
+        Expanded(child: DropdownButtonFormField<String>(value: toMonth, decoration: const InputDecoration(labelText: "إلى شهر"), items: months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(), onChanged: (v) => setState(() => toMonth = v!))),
+      ]),
+      const SizedBox(height: 10),
+      TextField(controller: searchController, decoration: const InputDecoration(labelText: "بحث بالاسم أو الرقم", border: OutlineInputBorder(), prefixIcon: Icon(Icons.search))),
+    ]);
+  }
+
   Future<void> _pickAndImportExcel() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['xlsx', 'xls'],
-      );
-
-      if (result == null) return;
-
-      setState(() => isImporting = true);
-
-      final file = File(result.files.single.path!);
-      final bytes = await file.readAsBytes();
-
-      final excel = Excel.decodeBytes(bytes);
-      final sheet = excel.tables[excel.tables.keys.first];
-
-      if (sheet == null) return;
-
-      List<Map<String, dynamic>> rows = [];
-
-      for (int i = 1; i < sheet.rows.length; i++) {
-        final row = sheet.rows[i];
-
-        rows.add({
-          "number": row.length > 1 ? row[1]?.value?.toString() ?? "" : "",
-          "rank": row.length > 2 ? row[2]?.value?.toString() ?? "" : "",
-          "name": row.length > 3 ? row[3]?.value?.toString() ?? "" : "",
-          "unit": row.length > 4 ? row[4]?.value?.toString() ?? "" : "",
-          "status": row.length > 5 ? row[5]?.value?.toString() ?? "" : "",
-          "month": importMonth,
-          "year": importYear,
-        });
-      }
-
-      await ExcelToDbService.import(rows, importMonth, importYear);
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("تم الاستيراد بنجاح")),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => isImporting = false);
-      }
+    final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['xlsx', 'xls']);
+    if (result == null) return;
+    setState(() => isImporting = true);
+    final bytes = await File(result.files.single.path!).readAsBytes();
+    final excel = Excel.decodeBytes(bytes);
+    final sheet = excel.tables[excel.tables.keys.first]!;
+    List<Map<String, dynamic>> rows = [];
+    for (int i = 1; i < sheet.rows.length; i++) {
+      final row = sheet.rows[i];
+      rows.add({
+        "number": row[1]?.value?.toString() ?? "", "rank": row[2]?.value?.toString() ?? "",
+        "name": row[3]?.value?.toString() ?? "", "unit": row[4]?.value?.toString() ?? "",
+        "status": row[5]?.value?.toString() ?? "", "month": importMonth, "year": importYear,
+      });
     }
+    await ExcelToDbService.import(rows, importMonth, importYear);
+    setState(() { isImporting = false; });
+    if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم الاستيراد بنجاح")));
   }
 
-  // =========================
-  // SEARCH (بدون تغيير)
-  // =========================
-  Future<void> searchPeople(String value) async {
-    final db = await DBHelper.database;
-
-    if (value.trim().isEmpty) {
-      setState(() => searchResults = []);
-      return;
-    }
-
-    final data = await db.query(
-      'timeline',
-      where: '''
-        number LIKE ?
-        OR name LIKE ?
-        OR rank LIKE ?
-        OR unit LIKE ?
-        OR status LIKE ?
-      ''',
-      whereArgs: List.filled(5, '%$value%'),
-      limit: 50,
-    );
-
-    setState(() => searchResults = data);
-  }
-
-  // =========================
-  // REPORT (إعادة بناء كاملة)
-  // =========================
   Future<void> _generateFilteredReport() async {
     final db = await DBHelper.database;
     final search = searchController.text.trim();
+    final records = await db.rawQuery('''
+      SELECT * FROM timeline 
+      WHERE (CAST(year AS INTEGER) BETWEEN ? AND ?) 
+      AND (CAST(month AS INTEGER) BETWEEN ? AND ?)
+      AND (number LIKE ? OR name LIKE ? OR rank LIKE ? OR unit LIKE ? OR status LIKE ?)
+      ORDER BY CAST(year AS INTEGER) ASC, CAST(month AS INTEGER) ASC
+    ''', [fromYear, toYear, fromMonth, toMonth, '%$search%', '%$search%', '%$search%', '%$search%', '%$search%']);
 
-    final records = await db.query(
-      'timeline',
-      where: '''
-        year = ?
-        AND CAST(month AS INTEGER) BETWEEN ? AND ?
-        AND (
-          number LIKE ?
-          OR name LIKE ?
-          OR rank LIKE ?
-          OR unit LIKE ?
-          OR status LIKE ?
-        )
-      ''',
-      whereArgs: [
-        selectedYear,
-        fromMonth,
-        toMonth,
-        '%$search%',
-        '%$search%',
-        '%$search%',
-        '%$search%',
-        '%$search%',
-      ],
-      orderBy: 'CAST(month AS INTEGER) ASC',
-    );
-
-    if (records.isEmpty) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("لا توجد نتائج")),
-      );
-      return;
-    }
-
+    if (records.isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("لا توجد بيانات"))); return; }
+    
     final excel = Excel.createExcel();
     final sheet = excel['HR Report'];
-
     Map<String, Map<String, dynamic>> grouped = {};
-    List<String> months = [];
-
     for (final r in records) {
       final key = r['number'].toString();
-      final m = r['month'].toString();
-
-      if (!months.contains(m)) months.add(m);
-
-      grouped.putIfAbsent(key, () => {
-        "number": r['number'],
-        "rank": r['rank'],
-        "name": r['name'],
-        "unit": r['unit'],
-        "months": {}
-      });
-
-      grouped[key]!["months"][m] = r['status'];
+      grouped.putIfAbsent(key, () => {"number": r['number'], "rank": r['rank'], "name": r['name'], "unit": r['unit'], "timeline": []});
+      grouped[key]!["timeline"].add(r);
     }
-
-    months.sort((a, b) => int.parse(a).compareTo(int.parse(b)));
-
-    List<CellValue> header = [
-      TextCellValue("الرقم"),
-      TextCellValue("الرتبة"),
-      TextCellValue("الاسم"),
-      TextCellValue("الوحدة"),
-      ...months.map((m) => TextCellValue("شهر $m"))
-    ];
-
-    sheet.appendRow(header);
-
+    
+    int monthsPerBlock = 6; 
     for (final p in grouped.values) {
-      List<CellValue> row = [
-        TextCellValue(p['number'].toString()),
-        TextCellValue(p['rank'].toString()),
-        TextCellValue(p['name'].toString()),
-        TextCellValue(p['unit'].toString()),
-      ];
-
-      for (final m in months) {
-        row.add(TextCellValue((p['months'][m] ?? '').toString()));
+      List<dynamic> timeline = p['timeline'];
+      for (int i = 0; i < timeline.length; i += monthsPerBlock) {
+        int end = (i + monthsPerBlock > timeline.length) ? timeline.length : i + monthsPerBlock;
+        var chunk = timeline.sublist(i, end);
+        sheet.appendRow([TextCellValue(p['number'].toString()), TextCellValue(p['rank'].toString()), TextCellValue(p['name'].toString()), TextCellValue(p['unit'].toString()), ...chunk.map((c) => TextCellValue("${c['month']}/${c['year']}"))]);
+        sheet.appendRow([TextCellValue(""), TextCellValue(""), TextCellValue(""), TextCellValue("الحالة"), ...chunk.map((c) => TextCellValue(c['status'].toString()))]);
+        sheet.appendRow([TextCellValue("")]);
       }
-
-      sheet.appendRow(row);
     }
-
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File("${dir.path}/hr_report.xlsx");
-
-    final bytes = excel.encode();
-    if (bytes == null) throw Exception("فشل إنشاء Excel");
-
-    await file.writeAsBytes(bytes);
-    await OpenFile.open(file.path);
+    final file = File("${(await getApplicationDocumentsDirectory()).path}/report.xlsx");
+    await file.writeAsBytes(excel.encode()!);
+    OpenFile.open(file.path);
   }
+
+  Widget _buildSectionTitle(String title) => Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.indigo)));
 }
