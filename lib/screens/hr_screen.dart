@@ -6,6 +6,7 @@ import 'package:open_file/open_file.dart';
 import 'package:excel/excel.dart';
 import '../db/db_helper.dart';
 import '../services/excel_to_db_service.dart';
+import 'follow_up_screen.dart'; // استيراد شاشة المتابعة الجديدة
 
 class HrScreen extends StatefulWidget {
   const HrScreen({super.key});
@@ -22,31 +23,41 @@ class _HrScreenState extends State<HrScreen> {
   String toMonth = "12";
   bool isImporting = false;
 
-  final TextEditingController searchController = TextEditingController();
   final List<String> years = List.generate(12, (i) => (2019 + i).toString());
   final List<String> months = List.generate(12, (i) => (i + 1).toString());
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("إدارة الموارد البشرية"), centerTitle: true),
-      body: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: ListView(
-            children: [
-              _buildSectionTitle("📥 استيراد كشوفات الأفراد"),
-              _buildImportCard(),
-              const SizedBox(height: 10),
-              _buildImportedMonthsList(),
-              const SizedBox(height: 25),
-              _buildSectionTitle("📊 إنشاء تقرير (كتلي رأسي)"),
-              _buildReportFilters(),
-              const SizedBox(height: 20),
-              ElevatedButton(onPressed: _generateFilteredReport, child: const Text("تصدير التقرير (Excel)")),
-            ],
-          ),
+      appBar: AppBar(
+        title: const Text("إدارة الموارد البشرية"),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.list_alt),
+            tooltip: "سجل المتابعة والملاحظات",
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FollowUpScreen())),
+          )
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: ListView(
+          children: [
+            _buildSectionTitle("📥 استيراد كشوفات الأفراد"),
+            _buildImportCard(),
+            const SizedBox(height: 10),
+            _buildImportedMonthsList(),
+            const SizedBox(height: 25),
+            _buildSectionTitle("📊 إنشاء تقرير كتلي"),
+            _buildReportFilters(),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _generateFilteredReport,
+              icon: const Icon(Icons.download),
+              label: const Text("تصدير التقرير (Excel)"),
+            ),
+          ],
         ),
       ),
     );
@@ -87,14 +98,11 @@ class _HrScreenState extends State<HrScreen> {
         const SizedBox(width: 10),
         Expanded(child: DropdownButtonFormField<String>(value: toYear, decoration: const InputDecoration(labelText: "إلى سنة"), items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(), onChanged: (v) => setState(() => toYear = v!))),
       ]),
-      const SizedBox(height: 10),
       Row(children: [
         Expanded(child: DropdownButtonFormField<String>(value: fromMonth, decoration: const InputDecoration(labelText: "من شهر"), items: months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(), onChanged: (v) => setState(() => fromMonth = v!))),
         const SizedBox(width: 10),
         Expanded(child: DropdownButtonFormField<String>(value: toMonth, decoration: const InputDecoration(labelText: "إلى شهر"), items: months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(), onChanged: (v) => setState(() => toMonth = v!))),
       ]),
-      const SizedBox(height: 10),
-      TextField(controller: searchController, decoration: const InputDecoration(labelText: "بحث بالاسم أو الرقم", border: OutlineInputBorder(), prefixIcon: Icon(Icons.search))),
     ]);
   }
 
@@ -120,41 +128,29 @@ class _HrScreenState extends State<HrScreen> {
   }
 
   Future<void> _generateFilteredReport() async {
-    final db = await DBHelper.database;
-    final search = searchController.text.trim();
-    final records = await db.rawQuery('''
-      SELECT * FROM timeline 
-      WHERE (CAST(year AS INTEGER) BETWEEN ? AND ?) 
-      AND (CAST(month AS INTEGER) BETWEEN ? AND ?)
-      AND (number LIKE ? OR name LIKE ? OR rank LIKE ? OR unit LIKE ? OR status LIKE ?)
-      ORDER BY CAST(year AS INTEGER) ASC, CAST(month AS INTEGER) ASC
-    ''', [fromYear, toYear, fromMonth, toMonth, '%$search%', '%$search%', '%$search%', '%$search%', '%$search%']);
-
-    if (records.isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("لا توجد بيانات"))); return; }
+    final records = await DBHelper.getAllTimeline(); // أو استخدم استعلام مخصص كما في كودك
+    if (records.isEmpty) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("لا توجد بيانات"))); return; }
     
     final excel = Excel.createExcel();
     final sheet = excel['HR Report'];
     Map<String, Map<String, dynamic>> grouped = {};
     for (final r in records) {
       final key = r['number'].toString();
-      grouped.putIfAbsent(key, () => {"number": r['number'], "rank": r['rank'], "name": r['name'], "unit": r['unit'], "timeline": []});
+      grouped.putIfAbsent(key, () => {"info": r, "timeline": []});
       grouped[key]!["timeline"].add(r);
     }
-    
-    int monthsPerBlock = 6; 
     for (final p in grouped.values) {
-      List<dynamic> timeline = p['timeline'];
-      for (int i = 0; i < timeline.length; i += monthsPerBlock) {
-        int end = (i + monthsPerBlock > timeline.length) ? timeline.length : i + monthsPerBlock;
-        var chunk = timeline.sublist(i, end);
-        sheet.appendRow([TextCellValue(p['number'].toString()), TextCellValue(p['rank'].toString()), TextCellValue(p['name'].toString()), TextCellValue(p['unit'].toString()), ...chunk.map((c) => TextCellValue("${c['month']}/${c['year']}"))]);
-        sheet.appendRow([TextCellValue(""), TextCellValue(""), TextCellValue(""), TextCellValue("الحالة"), ...chunk.map((c) => TextCellValue(c['status'].toString()))]);
-        sheet.appendRow([TextCellValue("")]);
-      }
+      final info = p['info'];
+      sheet.appendRow([TextCellValue("الرقم"), TextCellValue(info['number'].toString())]);
+      sheet.appendRow([TextCellValue("الرتبة"), TextCellValue(info['rank'].toString())]);
+      sheet.appendRow([TextCellValue("الاسم"), TextCellValue(info['name'].toString())]);
+      sheet.appendRow([TextCellValue("التاريخ"), ...p['timeline'].map((c) => TextCellValue("${c['month']}/${c['year']}"))]);
+      sheet.appendRow([TextCellValue("الحالة"), ...p['timeline'].map((c) => TextCellValue(c['status'].toString()))]);
+      sheet.appendRow([TextCellValue("")]);
     }
-    final file = File("${(await getApplicationDocumentsDirectory()).path}/report.xlsx");
+    final file = File("${(await getApplicationDocumentsDirectory()).path}/hr_report.xlsx");
     await file.writeAsBytes(excel.encode()!);
-    OpenFile.open(file.path);
+    if(mounted) OpenFile.open(file.path);
   }
 
   Widget _buildSectionTitle(String title) => Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.indigo)));
