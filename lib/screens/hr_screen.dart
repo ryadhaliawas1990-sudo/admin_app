@@ -34,7 +34,7 @@ class _HrScreenState extends State<HrScreen> {
     TextEditingController noteController = TextEditingController();
     showDialog(context: context, builder: (context) => AlertDialog(
       title: Text("ملاحظة لـ ${person['name']}"),
-      content: TextField(controller: noteController, decoration: const InputDecoration(hintText: "اكتب الملاحظة...")),
+      content: TextField(controller: noteController, decoration:  InputDecoration(hintText: "اكتب الملاحظة...")),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء")),
         ElevatedButton(onPressed: () async {
@@ -57,7 +57,7 @@ class _HrScreenState extends State<HrScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(children: [
           // مربع البحث
-          TextField(controller: searchController, decoration: const InputDecoration(labelText: "بحث بالاسم أو الرقم", suffixIcon: IconButton(icon: Icon(Icons.search), onPressed: _searchData))),
+          TextField(controller: searchController, decoration: InputDecoration(labelText: "بحث بالاسم أو الرقم", suffixIcon: IconButton(icon: Icon(Icons.search), onPressed: _searchData))),
           const SizedBox(height: 10),
           Expanded(child: ListView.builder(
             itemCount: searchResults.length,
