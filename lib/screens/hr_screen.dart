@@ -15,36 +15,19 @@ class HrScreen extends StatefulWidget {
 }
 
 class _HrScreenState extends State<HrScreen> {
+  // متغيرات الفلاتر والاستيراد
+  String importYear = "2026", importMonth = "1", fromYear = "2026", toYear = "2026", fromMonth = "1", toMonth = "12";
+  bool isImporting = false;
   final TextEditingController searchController = TextEditingController();
   List<Map<String, dynamic>> searchResults = [];
+  final List<String> years = List.generate(12, (i) => (2019 + i).toString());
+  final List<String> months = List.generate(12, (i) => (i + 1).toString());
 
   // دالة البحث
   Future<void> _searchData() async {
     final db = await DBHelper.database;
-    final query = searchController.text.trim();
-    final results = await db.query('timeline', 
-      where: 'name LIKE ? OR number LIKE ?', 
-      whereArgs: ['%$query%', '%$query%']
-    );
+    final results = await db.query('timeline', where: 'name LIKE ? OR number LIKE ?', whereArgs: ['%${searchController.text}%', '%${searchController.text}%']);
     setState(() => searchResults = results);
-  }
-
-  // إضافة الملاحظة
-  void _showAddNoteDialog(Map<String, dynamic> person) {
-    TextEditingController noteController = TextEditingController();
-    showDialog(context: context, builder: (context) => AlertDialog(
-      title: Text("ملاحظة لـ ${person['name']}"),
-      content: TextField(controller: noteController, decoration:  InputDecoration(hintText: "اكتب الملاحظة...")),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء")),
-        ElevatedButton(onPressed: () async {
-          await DBHelper.addNote(person['number'].toString(), person['month'].toString(), person['year'].toString(), noteController.text);
-          if(!mounted) return;
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم حفظ الملاحظة")));
-        }, child: const Text("حفظ"))
-      ],
-    ));
   }
 
   @override
@@ -53,23 +36,31 @@ class _HrScreenState extends State<HrScreen> {
       appBar: AppBar(title: const Text("إدارة الموارد البشرية"), actions: [
         IconButton(icon: const Icon(Icons.list_alt), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FollowUpScreen())))
       ]),
-      body: Padding(
+      body: ListView(
         padding: const EdgeInsets.all(16),
-        child: Column(children: [
-          // مربع البحث
-          TextField(controller: searchController, decoration: InputDecoration(labelText: "بحث بالاسم أو الرقم", suffixIcon: IconButton(icon: Icon(Icons.search), onPressed: _searchData))),
-          const SizedBox(height: 10),
-          Expanded(child: ListView.builder(
+        children: [
+          // 1. البحث
+          TextField(controller: searchController, decoration: InputDecoration(labelText: "بحث بالاسم أو الرقم", suffixIcon: IconButton(icon: const Icon(Icons.search), onPressed: _searchData))),
+          SizedBox(height: 200, child: ListView.builder(
             itemCount: searchResults.length,
-            itemBuilder: (context, i) => ListTile(
-              title: Text(searchResults[i]['name']),
-              subtitle: Text("رقم: ${searchResults[i]['number']} - حالة: ${searchResults[i]['status']}"),
-              trailing: IconButton(icon: const Icon(Icons.note_add, color: Colors.blue), onPressed: () => _showAddNoteDialog(searchResults[i])),
-            )
-          ))
-        ]),
+            itemBuilder: (context, i) => ListTile(title: Text(searchResults[i]['name']), subtitle: Text("رقم: ${searchResults[i]['number']}"), trailing: IconButton(icon: const Icon(Icons.note_add), onPressed: () => /* هنا ضع استدعاء دالة الملاحظة */ null)),
+          )),
+          const Divider(),
+          // 2. الاستيراد والأشهر
+          _buildSectionTitle("📥 استيراد كشوفات الأفراد"),
+          _buildImportCard(),
+          // 3. الفلاتر والتقرير
+          _buildSectionTitle("📊 إنشاء تقرير كتلي"),
+          _buildReportFilters(),
+          ElevatedButton(onPressed: () {}, child: const Text("تصدير التقرير")),
+        ],
       ),
     );
   }
-  // (باقي الدوال: _buildImportCard, _generateFilteredReport تبقى كما هي في الكود السابق)
+
+  Widget _buildSectionTitle(String title) => Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)));
+  
+  Widget _buildImportCard() => Card(child: Column(children: [Row(children: [Expanded(child: DropdownButtonFormField<String>(value: importYear, items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(), onChanged: (v) => setState(() => importYear = v!))), Expanded(child: DropdownButtonFormField<String>(value: importMonth, items: months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(), onChanged: (v) => setState(() => importMonth = v!)))])]));
+
+  Widget _buildReportFilters() => Column(children: [Row(children: [Expanded(child: DropdownButtonFormField<String>(value: fromYear, decoration: const InputDecoration(labelText: "من سنة"), items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(), onChanged: (v) => setState(() => fromYear = v!))), Expanded(child: DropdownButtonFormField<String>(value: toYear, decoration: const InputDecoration(labelText: "إلى سنة"), items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(), onChanged: (v) => setState(() => toYear = v!)))])]);
 }
