@@ -6,7 +6,7 @@ import 'package:open_file/open_file.dart';
 import 'package:excel/excel.dart';
 import '../db/db_helper.dart';
 import '../services/excel_to_db_service.dart';
-import 'follow_up_screen.dart'; // تأكد من استيراد شاشة الملاحظات هنا
+import 'follow_up_screen.dart';
 
 class HrScreen extends StatefulWidget {
   const HrScreen({super.key});
@@ -31,10 +31,9 @@ class _HrScreenState extends State<HrScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("إدارة الموارد البشرية"), 
+        title: const Text("إدارة الموارد البشرية"),
         centerTitle: true,
         actions: [
-          // الزر الوحيد المضاف لفتح شاشة الملاحظات دون المساس بالواجهة
           IconButton(
             icon: const Icon(Icons.list_alt),
             tooltip: "سجل المتابعة",
@@ -48,11 +47,22 @@ class _HrScreenState extends State<HrScreen> {
           padding: const EdgeInsets.all(16),
           child: ListView(
             children: [
+              // 1. خانة البحث أصبحت في الأعلى (مرئية بوضوح)
+              _buildSectionTitle("🔍 البحث عن موظف"),
+              TextField(
+                controller: searchController, 
+                decoration: const InputDecoration(labelText: "اكتب الاسم أو الرقم هنا...", border: OutlineInputBorder(), prefixIcon: Icon(Icons.search))
+              ),
+              const SizedBox(height: 20),
+              
+              // 2. الاستيراد
               _buildSectionTitle("📥 استيراد كشوفات الأفراد"),
               _buildImportCard(),
               const SizedBox(height: 10),
               _buildImportedMonthsList(),
               const SizedBox(height: 25),
+              
+              // 3. التقارير
               _buildSectionTitle("📊 إنشاء تقرير (كتلي رأسي)"),
               _buildReportFilters(),
               const SizedBox(height: 20),
@@ -64,6 +74,7 @@ class _HrScreenState extends State<HrScreen> {
     );
   }
 
+  // --- بقية الدوال (لا تغيير فيها لضمان استقرار نظامك) ---
   Widget _buildImportCard() {
     return Card(color: Colors.blue.shade50, child: Padding(padding: const EdgeInsets.all(12), child: Column(children: [
       Row(children: [
@@ -105,8 +116,6 @@ class _HrScreenState extends State<HrScreen> {
         const SizedBox(width: 10),
         Expanded(child: DropdownButtonFormField<String>(value: toMonth, decoration: const InputDecoration(labelText: "إلى شهر"), items: months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(), onChanged: (v) => setState(() => toMonth = v!))),
       ]),
-      const SizedBox(height: 10),
-      TextField(controller: searchController, decoration: const InputDecoration(labelText: "بحث بالاسم أو الرقم", border: OutlineInputBorder(), prefixIcon: Icon(Icons.search))),
     ]);
   }
 
